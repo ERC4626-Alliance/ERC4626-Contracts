@@ -1,0 +1,20 @@
+{
+  "name": "dapptools-template",
+  "license": "AGPL-3.0-only",
+  "version": "1.0.0",
+  "description": "Streamlined template for getting started with DappTools and Solmate.",
+  "files": [
+    "src/**/*.sol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/transmissions11/dapptools-template.git"
+  },
+  "devDependencies": {
+    "prettier": "^2.3.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.13"
+  },
+  "scripts": {
+    "lint": "prettier --write src/**/*.sol"
+  }
+}
