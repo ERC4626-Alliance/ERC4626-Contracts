@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import "./IERC4626.sol";
-import "./IERC4626Router.sol";
+import "./interfaces/IERC4626.sol";
+import "./interfaces/IERC4626Router.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 /// @title ERC4626Router contract
