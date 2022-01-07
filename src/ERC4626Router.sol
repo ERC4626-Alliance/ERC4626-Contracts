@@ -2,303 +2,144 @@
 pragma solidity 0.8.10;
 
 import "./interfaces/IERC4626.sol";
-import "./interfaces/IERC4626Router.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 /// @title ERC4626Router contract
-/// @author joeysantoro
-contract ERC4626Router is IERC4626Router {
+/// @author alcueca
+contract ERC4626Router {
     using SafeTransferLib for ERC20;
 
-    /************************** Deposit **************************/
+    mapping (IERC4626 => bool) public vaults;
+    mapping (IERC20 => bool) public tokens;
 
-    /// @inheritdoc IERC4626Router
-    function depositToApproveVault(
+    /// @dev Allow operating with a vault and its underlying
+    function addVault(IERC4626 vault, bool set)
+        public
+        auth
+    {
+        vaults[vault] = set;
+        tokens[IERC20(address(vault))] = set;
+        tokens[vault.underlying()] = set;
+        emit VaultAdded(vault, set);
+    }
+
+    /// @dev Execute a number of encoded calls in a single transaction
+    function batch(bytes[] calldata calls)
+        external
+        returns(bytes[] memory results)
+    {
+        results = new bytes[](calls.length);
+        for (uint256 i; i < calls.length; i++) {
+            (bool success, bytes memory result) = address(this).delegatecall(calls[i]);
+            if (!success) revert(RevertMsgExtractor.getRevertMsg(result));
+            results[i] = result;
+        }
+    }
+
+    /// @dev Execute any function on a vault, as an encoded call
+    function route(IERC4626 vault, bytes calldata data)
+        external
+        returns (bytes memory result)
+    {
+        if (vaults(vault) != true) {
+            revert VaultNotKnownError();
+        }
+        bool success;
+        (success, result) = address(vault).call(data);
+        if (!success) revert(RevertMsgExtractor.getRevertMsg(result));
+    }
+
+    /// @dev Deposit underlying to a vault
+    /// The underlying must have been transferred to the vault with `router.transfer` beforehand
+    function deposit(
         IERC4626 vault,
         address to,
         uint256 amountIn,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        ERC20 underlying = vault.underlying();
-
-        underlying.safeTransferFrom(msg.sender, address(this), amountIn);
-        underlying.safeApprove(address(vault), amountIn);
-        if (vault.deposit(to, amountIn) < minSharesOut) {
+        if (vaults(vault) != true) {
+            revert VaultNotKnownError();
+        }
+        sharesOut = vault.deposit(to, amountIn);
+        if (sharesOut <= minSharesOut) {
             revert MinAmountError();
         }
     }
 
-    /// @inheritdoc IERC4626Router
-    function depositToOptimisticVault(
+    /// @dev Withdraw underlying from a vault
+    /// The exact shares must have been transferred to the vault with `router.transfer` beforehand
+    /// Alternatively, surplus shares can be sent, and then the remainder retrieved wih `router.route(vault.skim(...))`
+    function withdraw(
         IERC4626 vault,
-        address to,
-        uint256 amountIn,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = vault.underlying();
-
-        underlying.safeTransferFrom(msg.sender, address(vault), amountIn);
-        if (vault.deposit(to, amountIn) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /************************** Withdraw **************************/
-
-    /// @inheritdoc IERC4626Router
-    function withdrawToApproveVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
         address to,
         uint256 amountUnderlying,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
+        uint256 maxSharesIn
+    ) external returns (uint256 sharesIn) {
+        if (vaults(vault) != true) {
+            revert VaultNotKnownError();
         }
-
-        fromVault.withdrawFrom(msg.sender, address(this), amountUnderlying);
-
-        underlying.safeApprove(address(toVault), amountUnderlying);
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
+        sharesIn = vault.withdraw(to, amountUnderlying);
+        if (sharesIn <= maxSharesIn) {
+            revert MaxAmountError();
         }
     }
 
-    /// @inheritdoc IERC4626Router
-    function withdrawToOptimisticVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountUnderying,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
-
-        fromVault.withdrawFrom(msg.sender, address(toVault), amountUnderying);
-
-        if (toVault.deposit(to, amountUnderying) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /************************** Redeem **************************/
-
-    /// @inheritdoc IERC4626Router
-    function redeemToApproveVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountShares,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
-
-        uint256 amountUnderlying = fromVault.redeemFrom(msg.sender, address(this), amountShares);
-
-        underlying.safeApprove(address(toVault), amountUnderlying);
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /// @inheritdoc IERC4626Router
-    function redeemToOptimisticVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountShares,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
-
-        uint256 amountUnderlying = fromVault.redeemFrom(msg.sender, address(toVault), amountShares);
-
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /*/////////////////////////////////////////////////////////////
-                            Permit Implementations
-    /////////////////////////////////////////////////////////////*/
-
-    /************************** Deposit **************************/
-
-    /// @inheritdoc IERC4626Router
-    function depositWithPermitToApproveVault(
+    /// @dev Mint vault shares with underlying
+    /// The exact underlying must have been transferred to the vault with `router.transfer` beforehand
+    /// Alternatively, surplus underlying can be sent, and then the remainder retrieved wih `router.route(vault.skim(...))`
+    function mint(
         IERC4626 vault,
         address to,
-        uint256 amountIn,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        uint256 value = approveMax ? type(uint256).max : amountIn;
-
-        ERC20 underlying = vault.underlying();
-        underlying.permit(msg.sender, address(this), value, deadline, v, r, s);
-
-        underlying.safeTransferFrom(msg.sender, address(this), amountIn);
-        underlying.safeApprove(address(vault), amountIn);
-        if (vault.deposit(to, amountIn) < minSharesOut) {
-            revert MinAmountError();
+        uint256 amountShares,
+        uint256 maxUnderlyingIn
+    ) external returns (uint256 underlyingIn) {
+        if (vaults(vault) != true) {
+            revert VaultNotKnownError();
+        }
+        underlyingIn = vault.mint(to, amountShares);
+        if (underlyingIn <= maxUnderlyingIn) {
+            revert MaxAmountError();
         }
     }
 
-    /// @inheritdoc IERC4626Router
-    function depositWithPermitToOptimisticVault(
+    /// @dev Burn vault shares and receive underlying
+    /// The shares must have been transferred to the vault with `router.transfer` beforehand
+    function burn(
         IERC4626 vault,
         address to,
-        uint256 amountIn,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        uint256 value = approveMax ? type(uint256).max : amountIn;
-
-        ERC20 underlying = vault.underlying();
-        underlying.permit(msg.sender, address(this), value, deadline, v, r, s);
-
-        underlying.safeTransferFrom(msg.sender, address(vault), amountIn);
-        if (vault.deposit(to, amountIn) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /************************** Withdraw **************************/
-
-    /// @inheritdoc IERC4626Router
-    function withdrawWithPermitToApproveVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountUnderlying,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
-
-        uint256 value = approveMax ? type(uint256).max : amountUnderlying;
-        fromVault.permit(msg.sender, address(this), value, deadline, v, r, s);
-
-        fromVault.withdrawFrom(msg.sender, address(this), amountUnderlying);
-
-        underlying.safeApprove(address(toVault), amountUnderlying);
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /// @inheritdoc IERC4626Router
-    function withdrawWithPermitToOptimisticVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountUnderlying,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
-
-        uint256 value = approveMax ? type(uint256).max : amountUnderlying;
-        fromVault.permit(msg.sender, address(this), value, deadline, v, r, s);
-
-        fromVault.withdrawFrom(msg.sender, address(toVault), amountUnderlying);
-
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /************************** Redeem **************************/
-
-    /// @inheritdoc IERC4626Router
-    function redeemWithPermitToApproveVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
         uint256 amountShares,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
+        uint256 minUnderlyingOut
+    ) external returns (uint256 underlyingOut) {
+        if (vaults(vault) != true) {
+            revert VaultNotKnownError();
         }
-
-        uint256 value = approveMax ? type(uint256).max : amountShares;
-        fromVault.permit(msg.sender, address(this), value, deadline, v, r, s);
-
-        uint256 amountUnderlying = fromVault.redeemFrom(msg.sender, address(this), amountShares);
-
-        underlying.safeApprove(address(toVault), amountUnderlying);
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
+        underlyingOut = vault.burn(to, amountShares);
+        if (underlyingOut >= minUnderlyingIn) {
             revert MinAmountError();
         }
     }
 
-    /// @inheritdoc IERC4626Router
-    function redeemWithPermitToOptimisticVault(
-        IERC4626 fromVault,
-        IERC4626 toVault,
-        address to,
-        uint256 amountShares,
-        uint256 minSharesOut,
-        uint256 deadline,
-        bool approveMax,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external returns (uint256 sharesOut) {
-        ERC20 underlying = fromVault.underlying();
-        if (underlying != toVault.underlying()) {
-            revert UnderlyingMismatchError();
-        }
+    /// @dev Execute an ERC2612 permit for the selected token
+    function forwardPermit(IERC2612 token, address spender, uint256 amount, uint256 deadline, uint8 v, bytes32 r, bytes32 s)
+        external
+    {
+        require(tokens[address(token)], "Unknown token");
+        token.permit(msg.sender, spender, amount, deadline, v, r, s);
+    }
 
-        uint256 value = approveMax ? type(uint256).max : amountShares;
-        fromVault.permit(msg.sender, address(this), value, deadline, v, r, s);
+    /// @dev Execute a Dai-style permit for the selected token
+    function forwardDaiPermit(DaiAbstract token, address spender, uint256 nonce, uint256 deadline, bool allowed, uint8 v, bytes32 r, bytes32 s)
+        external
+    {
+        require(tokens[address(token)], "Unknown token");
+        token.permit(msg.sender, spender, nonce, deadline, allowed, v, r, s);
+    }
 
-        uint256 amountUnderlying = fromVault.redeemFrom(msg.sender, address(toVault), amountShares);
-
-        if (toVault.deposit(to, amountUnderlying) < minSharesOut) {
-            revert MinAmountError();
-        }
+    /// @dev Allow users to trigger a token transfer from themselves to a receiver through the ladle, to be used with batch
+    function transfer(IERC20 token, address receiver, uint128 wad)
+        external
+    {
+        require(tokens[address(token)], "Unknown token");
+        token.safeTransferFrom(msg.sender, receiver, wad);
     }
 }
