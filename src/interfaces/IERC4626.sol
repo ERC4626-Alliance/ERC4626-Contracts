@@ -58,14 +58,14 @@ abstract contract IERC4626 is ERC20 {
       @notice Redeem a specific amount of shares for underlying tokens on behalf of `from`.
       @param from The address to debit shares from corresponding to the redemption.
       @param to The address to receive underlying corresponding to the redemption.
-      @param underlyingAmount The amount of underlying to redeem.
-      @return shares The underlying amount transferred to `to`.
+      @param shareAmount The amount of shares to redeem.
+      @return value The underlying amount transferred to `to`.
     */
     function redeemFrom(
         address from,
         address to,
-        uint256 underlyingAmount
-    ) public virtual returns (uint256 shares);
+        uint256 shareAmount
+    ) public virtual returns (uint256 value);
 
     /*///////////////////////////////////////////////////////////////
                             View Functions
@@ -93,14 +93,14 @@ abstract contract IERC4626 is ERC20 {
     /** 
       @notice Calculates the amount of shares corresponding to an underlying amount.
       @param underlyingAmount the amount of underlying tokens to convert to shares.
-      @return sharesAmount the amount of shares corresponding to a given underlying amount
+      @return shareAmount the amount of shares corresponding to a given underlying amount
     */
-    function calculateShares(uint256 underlyingAmount) public view virtual returns (uint256 sharesAmount);
+    function calculateShares(uint256 underlyingAmount) public view virtual returns (uint256 shareAmount);
 
     /** 
       @notice Calculates the amount of underlying corresponding to a share amount.
-      @param sharesAmount the amount of shares to convert to an underlying amount.
+      @param shareAmount the amount of shares to convert to an underlying amount.
       @return underlyingAmount the amount of underlying corresponding to a given amount of shares.
     */
-    function calculateUnderlying(uint256 sharesAmount) public view virtual returns (uint256 underlyingAmount);
+    function calculateUnderlying(uint256 shareAmount) public view virtual returns (uint256 underlyingAmount);
 }
