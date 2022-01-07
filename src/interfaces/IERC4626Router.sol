@@ -20,7 +20,7 @@ interface IERC4626Router {
     /************************** Errors **************************/
 
     /// @notice thrown when amount of shares/underlying received is below the min set by caller
-    error MinOutError();
+    error MinAmountError();
 
     /// @notice thrown when fromVault's underlying is not equal to toVault's underlying
     error UnderlyingMismatchError();
