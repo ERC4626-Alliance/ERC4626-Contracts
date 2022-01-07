@@ -15,12 +15,12 @@ import "./IERC4626.sol";
  The router atomically executes user journeys to originate/close a vault position, or route between ERC4626 vault implementations for the same token.
  @dev the router makes no special considerations for unique ERC20 implementations such as fee on transfer. 
  There are no built in protections for unexpected behavior beyond enforcing the minSharesOut is received.
- */ 
+ */
 interface IERC4626Router {
     /************************** Errors **************************/
 
     /// @notice thrown when amount of shares/underlying received is below the min set by caller
-    error MinOutError();
+    error MinAmountError();
 
     /// @notice thrown when fromVault's underlying is not equal to toVault's underlying
     error UnderlyingMismatchError();
@@ -37,11 +37,11 @@ interface IERC4626Router {
      @dev throws MinOutError
     */
     function depositToApproveVault(
-        IERC4626 vault, 
-        address to, 
+        IERC4626 vault,
+        address to,
         uint256 amountIn,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice deposit underlying to an "Optimistic Vault"
@@ -53,12 +53,12 @@ interface IERC4626Router {
      @dev throws MinOutError    
     */
     function depositToOptimisticVault(
-        IERC4626 vault, 
-        address to, 
+        IERC4626 vault,
+        address to,
         uint256 amountIn,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
-    
+    ) external returns (uint256 sharesOut);
+
     /************************** Withdraw **************************/
 
     /** 
@@ -72,12 +72,12 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function withdrawToApproveVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountUnderlying,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice withdraw `underlying` to an Approve Vault.
@@ -90,13 +90,12 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function withdrawToOptimisticVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
-        uint256 amountUnderying,
+        address to,
+        uint256 amountUnderlying,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
-
+    ) external returns (uint256 sharesOut);
 
     /************************** Redeem **************************/
 
@@ -111,12 +110,12 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function redeemToApproveVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountShares,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice redeem `shares` to an Optimistic Vault.
@@ -129,12 +128,12 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function redeemToOptimisticVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountShares,
         uint256 minSharesOut
-    ) external returns(uint256 sharesOut);
+    ) external returns (uint256 sharesOut);
 
     /*/////////////////////////////////////////////////////////////
                             Permit Implementations
@@ -152,12 +151,16 @@ interface IERC4626Router {
      @dev throws MinOutError
     */
     function depositWithPermitToApproveVault(
-        IERC4626 vault, 
-        address to, 
+        IERC4626 vault,
+        address to,
         uint256 amountIn,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice deposit underlying to an "Optimistic Vault" using EIP-2612 permit
@@ -169,13 +172,17 @@ interface IERC4626Router {
      @dev throws MinOutError    
     */
     function depositWithPermitToOptimisticVault(
-        IERC4626 vault, 
-        address to, 
+        IERC4626 vault,
+        address to,
         uint256 amountIn,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
-    
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
+
     /************************** Withdraw **************************/
 
     /** 
@@ -189,13 +196,17 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function withdrawWithPermitToApproveVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountUnderlying,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice withdraw `underlying` to an Approve Vault using EIP-2612 permit
@@ -208,14 +219,17 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function withdrawWithPermitToOptimisticVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
-        uint256 amountUnderying,
+        address to,
+        uint256 amountUnderlying,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
-
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
 
     /************************** Redeem **************************/
 
@@ -230,13 +244,17 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function redeemWithPermitToApproveVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountShares,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice redeem `shares` to an Optimistic Vault using EIP-2612 permit
@@ -249,11 +267,15 @@ interface IERC4626Router {
      @dev throws MinOutError, UnderlyingMismatchError   
     */
     function redeemWithPermitToOptimisticVault(
-        IERC4626 fromVault, 
+        IERC4626 fromVault,
         IERC4626 toVault,
-        address to, 
+        address to,
         uint256 amountShares,
         uint256 minSharesOut,
-        uint deadline, bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external returns(uint256 sharesOut);
+        uint256 deadline,
+        bool approveMax,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 sharesOut);
 }

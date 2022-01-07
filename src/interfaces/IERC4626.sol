@@ -4,14 +4,13 @@ pragma solidity 0.8.10;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 abstract contract IERC4626 is ERC20 {
-
     /*///////////////////////////////////////////////////////////////
                                 Events
     //////////////////////////////////////////////////////////////*/
 
-    event Deposit(address indexed from, addres indexed to, uint256 value);
+    event Deposit(address indexed from, address indexed to, uint256 value);
 
-    event Withdraw(address indexed from, addres indexed to, uint256 value);
+    event Withdraw(address indexed from, address indexed to, uint256 value);
 
     /*///////////////////////////////////////////////////////////////
                             Mutable Functions
@@ -41,7 +40,11 @@ abstract contract IERC4626 is ERC20 {
       @return shares The shares in the vault burned from `from`.
       @dev requires ERC-20 approval of the ERC-4626 shares by sender.
     */
-    function withdrawFrom(address from, address to, uint256 underlyingAmount) public virtual returns (uint256 shares);
+    function withdrawFrom(
+        address from,
+        address to,
+        uint256 underlyingAmount
+    ) public virtual returns (uint256 shares);
 
     /**
       @notice Redeem a specific amount of shares for underlying tokens.
@@ -58,7 +61,11 @@ abstract contract IERC4626 is ERC20 {
       @param shareAmount The amount of shares to redeem.
       @return value The underlying amount transferred to `to`.
     */
-    function redeemFrom(address from, address to, uint256 underlyingAmount) public virtual returns (uint256 shares);
+    function redeemFrom(
+        address from,
+        address to,
+        uint256 shareAmount
+    ) public virtual returns (uint256 value);
 
     /*///////////////////////////////////////////////////////////////
                             View Functions
@@ -68,14 +75,14 @@ abstract contract IERC4626 is ERC20 {
       @notice The underlying token the Vault accepts.
       @return the ERC20 underlying implementation address.
     */
-    function underlying() public view returns(ERC20);
+    function underlying() public view virtual returns (ERC20);
 
     /** 
       @notice Returns a user's Vault balance in underlying tokens.
       @param user The user to get the underlying balance of.
       @return balance The user's Vault balance in underlying tokens.
     */
-    function balanceOfUnderlying(address user) public view returns (uint256 balance);
+    function balanceOfUnderlying(address user) public view virtual returns (uint256 balance);
 
     /** 
       @notice Calculates the total amount of underlying tokens the Vault holds.
@@ -86,14 +93,14 @@ abstract contract IERC4626 is ERC20 {
     /** 
       @notice Calculates the amount of shares corresponding to an underlying amount.
       @param underlyingAmount the amount of underlying tokens to convert to shares.
-      @return sharesAmount the amount of shares corresponding to a given underlying amount
+      @return shareAmount the amount of shares corresponding to a given underlying amount
     */
-    function calculateShares(uint256 underlyingAmount) public view returns (uint256 sharesAmount);
-    
+    function calculateShares(uint256 underlyingAmount) public view virtual returns (uint256 shareAmount);
+
     /** 
       @notice Calculates the amount of underlying corresponding to a share amount.
-      @param sharesAmount the amount of shares to convert to an underlying amount.
+      @param shareAmount the amount of shares to convert to an underlying amount.
       @return underlyingAmount the amount of underlying corresponding to a given amount of shares.
     */
-    function calculateUnderlying(uint256 sharesAmount) public view returns (uint256 underlyingAmount);
+    function calculateUnderlying(uint256 shareAmount) public view virtual returns (uint256 underlyingAmount);
 }
