@@ -7,6 +7,3 @@
 [submodule "lib/solmate-next"]
 	path = lib/solmate-next
 	url = https://github.com/transmissions11/solmate-next
-[submodule "lib/v3-periphery"]
-	path = lib/v3-periphery
-	url = https://github.com/Uniswap/v3-periphery
