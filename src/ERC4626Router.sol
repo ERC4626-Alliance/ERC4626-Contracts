@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import "./interfaces/IERC4626.sol";
-import "./interfaces/IERC4626Router.sol";
+import {IERC4626, IERC4626Router, ERC20} from "./interfaces/IERC4626Router.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
+import {SelfPermit} from "./external/SelfPermit.sol";
+import {Multicall} from "./external/Multicall.sol";
 
 /// @title ERC4626Router contract
 /// @author joeysantoro
-contract ERC4626Router is IERC4626Router {
+contract ERC4626Router is IERC4626Router, SelfPermit, Multicall {
     using SafeTransferLib for ERC20;
 
     /// @inheritdoc IERC4626Router
