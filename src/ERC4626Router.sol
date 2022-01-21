@@ -21,7 +21,7 @@ contract ERC4626Router is IERC4626Router {
 
         underlying.safeTransferFrom(msg.sender, address(this), amountUnderlying);
         underlying.safeApprove(address(vault), amountUnderlying);
-        if (sharesOut = vault.deposit(to, amountUnderlying) < minSharesOut) {
+        if ((sharesOut = vault.deposit(to, amountUnderlying)) < minSharesOut) {
             revert MinAmountError();
         }
     }
@@ -34,10 +34,10 @@ contract ERC4626Router is IERC4626Router {
         uint256 amountUnderlying,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        fromVault.withdrawFrom(msg.sender, address(this), amountUnderlying);
+        fromVault.withdraw(msg.sender, address(this), amountUnderlying);
 
         toVault.underlying().safeApprove(address(toVault), amountUnderlying);
-        if (sharesOut = toVault.deposit(to, amountUnderlying) < minSharesOut) {
+        if ((sharesOut = toVault.deposit(to, amountUnderlying)) < minSharesOut) {
             revert MinAmountError();
         }
     }
@@ -50,10 +50,10 @@ contract ERC4626Router is IERC4626Router {
         uint256 amountShares,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        uint256 amountUnderlying = fromVault.redeemFrom(msg.sender, address(this), amountShares);
+        uint256 amountUnderlying = fromVault.redeem(msg.sender, address(this), amountShares);
 
         toVault.underlying().safeApprove(address(toVault), amountUnderlying);
-        if (sharesOut = toVault.deposit(to, amountUnderlying) < minSharesOut) {
+        if ((sharesOut = toVault.deposit(to, amountUnderlying)) < minSharesOut) {
             revert MinAmountError();
         }
     }

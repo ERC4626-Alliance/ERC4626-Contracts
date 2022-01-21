@@ -76,33 +76,33 @@ abstract contract IERC4626 is ERC20 {
     /** 
       @notice Returns the value in underlying terms of one vault token. 
      */
-    function exchangeRate() public view returns (uint256);
+    function exchangeRate() public view virtual returns (uint256);
 
     /**
       @notice Returns the amount of vault tokens that would be obtained if depositing a given amount of underlying tokens in a `deposit` call.
       @param underlyingAmount the input amount of underlying tokens
       @return shareAmount the corresponding amount of shares out from a deposit call with `underlyingAmount` in
      */
-    function depositPreview(uint256 underlyingAmount) public view returns (uint256 shareAmount);
+    function depositPreview(uint256 underlyingAmount) public view virtual returns (uint256 shareAmount);
 
     /**
       @notice Returns the amount of underlying tokens that would be deposited if minting a given amount of shares in a `mint` call.
       @param shareAmount the amount of shares from a mint call.
       @return underlyingAmount the amount of underlying tokens corresponding to the mint call
      */
-    function mintPreview(uint256 shareAmount) public view returns (uint256 underlyingAmount);
+    function mintPreview(uint256 shareAmount) public view virtual returns (uint256 underlyingAmount);
 
     /**
       @notice Returns the amount of vault tokens that would be burned if withdrawing a given amount of underlying tokens in a `withdraw` call.
       @param underlyingAmount the input amount of underlying tokens
       @return shareAmount the corresponding amount of shares out from a withdraw call with `underlyingAmount` in
      */
-    function withdrawPreview(uint256 underlyingAmount) public view returns (uint256 shareAmount);
+    function withdrawPreview(uint256 underlyingAmount) public view virtual returns (uint256 shareAmount);
 
         /**
       @notice Returns the amount of underlying tokens that would be obtained if redeeming a given amount of shares in a `redeem` call.
       @param shareAmount the amount of shares from a redeem call.
       @return underlyingAmount the amount of underlying tokens corresponding to the redeem call
      */
-    function redeemPreview(uint256 shareAmount) public view returns (uint256 underlyingAmount);
+    function redeemPreview(uint256 shareAmount) public view virtual returns (uint256 underlyingAmount);
 }
