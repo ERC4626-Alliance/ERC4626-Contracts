@@ -1,9 +1,11 @@
 pragma solidity 0.8.10;
 
-import {MockERC20} from "solmate-next/test/utils/mocks/MockERC20.sol";
+import {ERC20, MockERC20} from "solmate-next/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "./mock/MockERC4626.sol";
 
-import {IERC4626Router, ERC4626Router, IERC4626} from "../ERC4626Router.sol";
+import {IERC4626Router, ERC4626Router, IERC4626, SelfPermit} from "../ERC4626Router.sol";
+
+import {Hevm} from "./Hevm.sol";
 
 contract ERC4626Test {
 
@@ -12,7 +14,7 @@ contract ERC4626Test {
     IERC4626 toVault;
     ERC4626Router router;
 
-    error MinAmountError();
+    Hevm VM = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     function setUp() public {
         underlying = new MockERC20("Mock Token", "TKN", 18);
@@ -33,6 +35,60 @@ contract ERC4626Test {
 
         require(vault.balanceOf(address(this)) == 1e18);
         require(underlying.balanceOf(address(this)) == 0);
+    }
+
+    function testDepositWithPermit() public {
+        uint256 privateKey = 0xBEEF;
+        address owner = VM.addr(privateKey);
+
+        underlying.mint(owner, 1e18);
+
+        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    underlying.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(underlying.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                )
+            )
+        );
+
+        underlying.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
+
+        VM.prank(owner);
+        router.depositToVault(vault, owner, 1e18, 1e18);
+
+        require(vault.balanceOf(owner) == 1e18);
+        require(underlying.balanceOf(owner) == 0);
+    }
+
+    function testDepositWithPermitViaMulticall() public {
+        uint256 privateKey = 0xBEEF;
+        address owner = VM.addr(privateKey);
+
+        underlying.mint(owner, 1e18);
+
+        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    underlying.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(underlying.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                )
+            )
+        );
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, underlying, 1e18, block.timestamp, v, r, s);
+        data[1] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, 1e18, 1e18);
+
+        VM.prank(owner);
+        router.multicall(data);
+
+        require(vault.balanceOf(owner) == 1e18);
+        require(underlying.balanceOf(owner) == 0);
     }
 
     function testDepositTo() public {
