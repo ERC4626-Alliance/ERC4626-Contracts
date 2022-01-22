@@ -22,7 +22,7 @@ contract ERC4626Test {
         vault = IERC4626(address(new MockERC4626(underlying)));
         toVault = IERC4626(address(new MockERC4626(underlying)));
 
-        router = new ERC4626Router();
+        router = new ERC4626Router(""); // empty reverse ens
 
         underlying.mint(address(this), 1e18);
     }

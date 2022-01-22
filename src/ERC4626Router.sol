@@ -7,11 +7,15 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {SelfPermit} from "./external/SelfPermit.sol";
 import {Multicall} from "./external/Multicall.sol";
 
+import {ENSReverseRecord} from "./ens/ENSReverseRecord.sol";
+
 /// @title ERC4626Router contract
 /// @author joeysantoro
-contract ERC4626Router is IERC4626Router, SelfPermit, Multicall {
+contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecord {
     using SafeTransferLib for ERC20;
 
+    constructor(string memory name) ENSReverseRecord(name) {}
+    
     /// @inheritdoc IERC4626Router
     function depositToVault(
         IERC4626 vault,
