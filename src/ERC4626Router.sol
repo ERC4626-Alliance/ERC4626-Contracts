@@ -15,7 +15,7 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     using SafeTransferLib for ERC20;
 
     constructor(string memory name) ENSReverseRecord(name) {}
-    
+
     /// @inheritdoc IERC4626Router
     function depositToVault(
         IERC4626 vault,
@@ -33,7 +33,19 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     }
 
     /// @inheritdoc IERC4626Router
-    function withdrawToVault(
+    function withdrawFromVault(
+        IERC4626 vault,
+        address to,
+        uint256 amountUnderlying,
+        uint256 minSharesOut
+    ) external returns (uint256 sharesOut) {
+        if ((sharesOut = vault.withdraw(msg.sender, to, amountUnderlying)) < minSharesOut) {
+            revert MinAmountError();
+        }
+    }
+
+    /// @inheritdoc IERC4626Router
+    function withdrawToDeposit(
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
@@ -49,7 +61,19 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     }
 
     /// @inheritdoc IERC4626Router
-    function redeemToVault(
+    function redeemFromVault(
+        IERC4626 vault,
+        address to,
+        uint256 amountShares,
+        uint256 minUnderlyingOut
+    ) external returns (uint256 underlyingOut) {
+        if ((underlyingOut = vault.redeem(msg.sender, to, amountShares)) < minUnderlyingOut) {
+            revert MinAmountError();
+        }
+    }
+
+    /// @inheritdoc IERC4626Router
+    function redeemToDeposit(
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
