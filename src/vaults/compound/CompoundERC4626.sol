@@ -14,14 +14,12 @@ contract CompoundERC4626 is ERC4626 {
     CERC20 public immutable cToken;
 
     constructor(
-        CERC20 _cToken,
-        string memory _name,
-        string memory _symbol
+        CERC20 _cToken
     )
         ERC4626(
             ERC20(address(_cToken.underlying())),
-            _name,
-            _symbol
+            string(abi.encodePacked(_cToken.underlying().name(), " ERC-4626 Vault")),
+            string(abi.encodePacked("w", _cToken.underlying().symbol()))
         )
     {
         cToken = _cToken;

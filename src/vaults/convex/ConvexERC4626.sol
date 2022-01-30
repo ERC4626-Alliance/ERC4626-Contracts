@@ -21,7 +21,7 @@ interface IConvexBaseRewardPool {
 
 /// @title Convex Finance Yield Bearing Vault
 /// @author joeysantoro
-contract ConvexAuthERC4626 is ERC4626, RewardsClaimer {
+contract ConvexERC4626 is ERC4626, RewardsClaimer {
 
     /// @notice The Convex Booster contract (for deposit/withdraw)
     IConvexBooster public immutable convexBooster;
@@ -37,6 +37,7 @@ contract ConvexAuthERC4626 is ERC4626, RewardsClaimer {
      @param _convexBooster The Convex Booster contract (for deposit/withdraw).
      @param _convexRewards The Convex Rewards contract (for claiming rewards).
      @param _rewardsDestination the address to send CRV and CVX.
+     @param _rewardTokens the rewards tokens to send out.
     */
     constructor(
         ERC20 _underlying,
