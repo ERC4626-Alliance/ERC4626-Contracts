@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import {ERC20} from "solmate-next/tokens/ERC20.sol";
-import "../AuthERC4626.sol";
+import {ERC20, ERC4626} from "solmate-next/mixins/ERC4626.sol";
+import {SafeTransferLib} from "solmate-next/utils/SafeTransferLib.sol";
 
 import {LibFuse} from "libcompound/LibFuse.sol";
 import {CERC20} from "libcompound/interfaces/CERC20.sol";
 
-contract CompoundERC4626 is AuthERC4626 {
+contract CompoundERC4626 is ERC4626 {
     using LibFuse for CERC20;
     using SafeTransferLib for ERC20;
 
@@ -16,17 +16,12 @@ contract CompoundERC4626 is AuthERC4626 {
     constructor(
         CERC20 _cToken,
         string memory _name,
-        string memory _symbol,
-        address _owner,
-        Authority _authority
-
+        string memory _symbol
     )
-        AuthERC4626(
+        ERC4626(
             ERC20(address(_cToken.underlying())),
             _name,
-            _symbol,
-            _owner,
-            _authority
+            _symbol
         )
     {
         cToken = _cToken;
@@ -47,14 +42,5 @@ contract CompoundERC4626 is AuthERC4626 {
 
     function totalUnderlying() public view override returns (uint256) {
         return cToken.viewUnderlyingBalanceOf(address(this));
-    }
-
-    /// @notice allow an authenticated address to recover a specific token
-    function recoverERC20(ERC20 token, address to) external requiresAuth {
-        _transferAll(token, to);
-    }
-
-    function _transferAll(ERC20 token, address to) internal returns (uint256 amount) {
-        token.safeTransfer(to, amount = token.balanceOf(address(this)));
     }
 }
