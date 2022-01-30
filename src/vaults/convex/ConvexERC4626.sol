@@ -97,7 +97,7 @@ contract ConvexAuthERC4626 is AuthERC4626 {
         return convexRewards.balanceOf(address(this));
     }
 
-    /// @notice allow the owner to recover a specific token in the event of an issue
+    /// @notice allow an authenticated address to recover a specific token
     function recoverERC20(ERC20 token, address to) external requiresAuth {
         _transferAll(token, to);
     }
