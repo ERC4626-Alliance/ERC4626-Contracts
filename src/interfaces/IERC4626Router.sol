@@ -21,10 +21,10 @@ interface IERC4626Router {
     /************************** Deposit **************************/
     
     /** 
-     @notice deposit `amountUnderlying` to an ERC4626 vault.
+     @notice deposit `amount` to an ERC4626 vault.
      @param vault The ERC4626 vault to deposit underlying to.
      @param to The destination of ownership shares.
-     @param amountUnderlying The amount of underlying to deposit to `vault`.
+     @param amount The amount of underlying to deposit to `vault`.
      @param minSharesOut The min amount of `vault` shares received by `to`.
      @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
@@ -32,34 +32,34 @@ interface IERC4626Router {
     function depositToVault(
         IERC4626 vault,
         address to,
-        uint256 amountUnderlying,
+        uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut);
 
     /************************** Withdraw **************************/
 
     /** 
-     @notice withdraw `amountUnderlying` from an ERC4626 vault.
+     @notice withdraw `amount` from an ERC4626 vault.
      @param vault The ERC4626 vault to withdraw underlying from.
      @param to The destination of underlying.
-     @param amountUnderlying The amount of underlying to withdraw from vault.
-     @param minUnderlyingOut The min amount of underlying received by `to`.
-     @return underlyingOut the amount of underlying received by `to`.
+     @param amount The amount of underlying to withdraw from vault.
+     @param minSharesOut The min amount of shares received by `to`.
+     @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
     */
     function withdrawFromVault(
         IERC4626 vault,
         address to,
-        uint256 amountUnderlying,
-        uint256 minUnderlyingOut
-    ) external returns (uint256 underlyingOut);
+        uint256 amount,
+        uint256 minSharesOut
+    ) external returns (uint256 sharesOut);
 
     /** 
-     @notice withdraw `amountUnderlying` to an ERC4626 vault.
+     @notice withdraw `amount` to an ERC4626 vault.
      @param fromVault The ERC4626 vault to withdraw underlying from.
      @param toVault The ERC4626 vault to deposit underlying to.
      @param to The destination of ownership shares.
-     @param amountUnderlying The amount of underlying to withdraw from fromVault.
+     @param amount The amount of underlying to withdraw from fromVault.
      @param minSharesOut The min amount of toVault shares received by `to`.
      @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
@@ -68,27 +68,27 @@ interface IERC4626Router {
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
-        uint256 amountUnderlying,
+        uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut);
 
     /************************** Redeem **************************/
 
     /** 
-     @notice redeem `amountShares` shares from an ERC4626 vault.
+     @notice redeem `shares` shares from an ERC4626 vault.
      @param vault The ERC4626 vault to redeem shares from.
      @param to The destination of underlying.
-     @param amountShares The amount of shares to redeem from vault.
-     @param minUnderlyingOut The min amount of underlying received by `to`.
-     @return underlyingOut the amount of underlying received by `to`.
+     @param shares The amount of shares to redeem from vault.
+     @param minAmountOut The min amount of underlying received by `to`.
+     @return amountOut the amount of underlying received by `to`.
      @dev throws MinOutError   
     */
     function redeemFromVault(
         IERC4626 vault,
         address to,
-        uint256 amountShares,
-        uint256 minUnderlyingOut
-    ) external returns (uint256 underlyingOut);
+        uint256 shares,
+        uint256 minAmountOut
+    ) external returns (uint256 amountOut);
 
 
     /** 
@@ -96,7 +96,7 @@ interface IERC4626Router {
      @param fromVault The ERC4626 vault to redeem shares from.
      @param toVault The ERC4626 vault to deposit underlying to.
      @param to The destination of ownership shares.
-     @param amountShares The amount of shares to redeem from fromVault.
+     @param shares The amount of shares to redeem from fromVault.
      @param minSharesOut The min amount of toVault shares received by `to`.
      @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
@@ -105,7 +105,7 @@ interface IERC4626Router {
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
-        uint256 amountShares,
+        uint256 shares,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut);
 }

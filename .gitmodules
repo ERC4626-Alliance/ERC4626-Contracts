@@ -3,10 +3,7 @@
 	url = https://github.com/dapphub/ds-test
 [submodule "lib/solmate"]
 	path = lib/solmate
-	url = https://github.com/rari-capital/solmate
-[submodule "lib/solmate-next"]
-	path = lib/solmate-next
-	url = https://github.com/transmissions11/solmate-next
+	url = https://github.com/Rari-Capital/solmate
 [submodule "lib/libcompound"]
 	path = lib/libcompound
 	url = https://github.com/transmissions11/libcompound

@@ -20,14 +20,14 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     function depositToVault(
         IERC4626 vault,
         address to,
-        uint256 amountUnderlying,
+        uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        ERC20 underlying = vault.underlying();
+        ERC20 underlying = vault.asset();
 
-        underlying.safeTransferFrom(msg.sender, address(this), amountUnderlying);
-        underlying.safeApprove(address(vault), amountUnderlying);
-        if ((sharesOut = vault.deposit(to, amountUnderlying)) < minSharesOut) {
+        underlying.safeTransferFrom(msg.sender, address(this), amount);
+        underlying.safeApprove(address(vault), amount);
+        if ((sharesOut = vault.deposit(amount, to)) < minSharesOut) {
             revert MinAmountError();
         }
     }
@@ -36,10 +36,10 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     function withdrawFromVault(
         IERC4626 vault,
         address to,
-        uint256 amountUnderlying,
+        uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        if ((sharesOut = vault.withdraw(msg.sender, to, amountUnderlying)) < minSharesOut) {
+        if ((sharesOut = vault.withdraw(amount, to, msg.sender)) < minSharesOut) {
             revert MinAmountError();
         }
     }
@@ -49,13 +49,13 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
-        uint256 amountUnderlying,
+        uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        fromVault.withdraw(msg.sender, address(this), amountUnderlying);
+        fromVault.withdraw(amount, address(this), msg.sender);
 
-        toVault.underlying().safeApprove(address(toVault), amountUnderlying);
-        if ((sharesOut = toVault.deposit(to, amountUnderlying)) < minSharesOut) {
+        toVault.asset().safeApprove(address(toVault), amount);
+        if ((sharesOut = toVault.deposit(amount, to)) < minSharesOut) {
             revert MinAmountError();
         }
     }
@@ -64,10 +64,10 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
     function redeemFromVault(
         IERC4626 vault,
         address to,
-        uint256 amountShares,
-        uint256 minUnderlyingOut
-    ) external returns (uint256 underlyingOut) {
-        if ((underlyingOut = vault.redeem(msg.sender, to, amountShares)) < minUnderlyingOut) {
+        uint256 shares,
+        uint256 minAmountOut
+    ) external returns (uint256 amountOut) {
+        if ((amountOut = vault.redeem(shares, to, msg.sender)) < minAmountOut) {
             revert MinAmountError();
         }
     }
@@ -77,13 +77,13 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
         IERC4626 fromVault,
         IERC4626 toVault,
         address to,
-        uint256 amountShares,
+        uint256 shares,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        uint256 amountUnderlying = fromVault.redeem(msg.sender, address(this), amountShares);
+        uint256 amount = fromVault.redeem(shares, address(this), msg.sender);
 
-        toVault.underlying().safeApprove(address(toVault), amountUnderlying);
-        if ((sharesOut = toVault.deposit(to, amountUnderlying)) < minSharesOut) {
+        toVault.asset().safeApprove(address(toVault), amount);
+        if ((sharesOut = toVault.deposit(amount, to)) < minSharesOut) {
             revert MinAmountError();
         }
     }

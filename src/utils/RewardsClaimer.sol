@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import {SafeTransferLib, ERC20} from "solmate-next/utils/SafeTransferLib.sol";
+import {SafeTransferLib, ERC20} from "solmate/utils/SafeTransferLib.sol";
 
 /// @title Rewards Claiming Contract
 /// @author joeysantoro
