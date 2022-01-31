@@ -43,16 +43,16 @@ interface IERC4626Router {
      @param vault The ERC4626 vault to withdraw underlying from.
      @param to The destination of underlying.
      @param amount The amount of underlying to withdraw from vault.
-     @param minAmountOut The min amount of underlying received by `to`.
-     @return amountOut the amount of underlying received by `to`.
+     @param minSharesOut The min amount of shares received by `to`.
+     @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
     */
     function withdrawFromVault(
         IERC4626 vault,
         address to,
         uint256 amount,
-        uint256 minAmountOut
-    ) external returns (uint256 amountOut);
+        uint256 minSharesOut
+    ) external returns (uint256 sharesOut);
 
     /** 
      @notice withdraw `amount` to an ERC4626 vault.
