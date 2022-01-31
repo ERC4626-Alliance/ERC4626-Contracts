@@ -32,13 +32,13 @@ contract CompoundERC4626 is ERC4626 {
 
     function afterDeposit(uint256 underlyingAmount) internal override {
         // Approve the underlying tokens to the cToken
-        underlying.safeApprove(address(cToken), underlyingAmount);
+        asset.safeApprove(address(cToken), underlyingAmount);
 
         // mint tokens
         require(cToken.mint(underlyingAmount) == 0, "MINT_FAILED");
     }
 
-    function totalUnderlying() public view override returns (uint256) {
+    function totalAssets() public view override returns (uint256) {
         return cToken.viewUnderlyingBalanceOf(address(this));
     }
 }

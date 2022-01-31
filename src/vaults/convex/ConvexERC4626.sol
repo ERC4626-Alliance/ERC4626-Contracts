@@ -48,7 +48,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
         address _rewardsDestination,
         ERC20[] memory _rewardTokens
     )
-        ERC4626(_underlying, _name, _symbol)
+        ERC4626(_asset, _name, _symbol)
         RewardsClaimer(_rewardsDestination, _rewardTokens)
     {
         convexBooster = _convexBooster;
@@ -57,7 +57,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
 
     function afterDeposit(uint256 amount) internal override {
         uint256 poolId = convexRewards.pid();
-        underlying.approve(address(convexBooster), amount);
+        asset.approve(address(convexBooster), amount);
         convexBooster.deposit(poolId, amount, true);
     }
 
