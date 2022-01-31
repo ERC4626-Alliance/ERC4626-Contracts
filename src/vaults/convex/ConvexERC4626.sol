@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import {ERC20, ERC4626} from "solmate-next/mixins/ERC4626.sol";
+import {ERC20, ERC4626} from "solmate/mixins/ERC4626.sol";
 import {RewardsClaimer} from "../../utils/RewardsClaimer.sol";
 
 // Docs: https://docs.convexfinance.com/convexfinanceintegration/booster
@@ -31,7 +31,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
 
     /**
      @notice Creates a new Vault that accepts a specific underlying token.
-     @param _underlying The ERC20 compliant token the Vault should accept.
+     @param _asset The ERC20 compliant token the Vault should accept.
      @param _name The name for the vault token.
      @param _symbol The symbol for the vault token.
      @param _convexBooster The Convex Booster contract (for deposit/withdraw).
@@ -40,7 +40,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
      @param _rewardTokens the rewards tokens to send out.
     */
     constructor(
-        ERC20 _underlying,
+        ERC20 _asset,
         string memory _name,
         string memory _symbol,
         IConvexBooster _convexBooster,
@@ -55,14 +55,14 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
         convexRewards = _convexRewards;
     }
 
-    function afterDeposit(uint256 underlyingAmount) internal override {
+    function afterDeposit(uint256 amount) internal override {
         uint256 poolId = convexRewards.pid();
-        underlying.approve(address(convexBooster), underlyingAmount);
-        convexBooster.deposit(poolId, underlyingAmount, true);
+        underlying.approve(address(convexBooster), amount);
+        convexBooster.deposit(poolId, amount, true);
     }
 
-    function beforeWithdraw(uint256 underlyingAmount) internal override {
-        convexRewards.withdrawAndUnwrap(underlyingAmount, false);
+    function beforeWithdraw(uint256 amount) internal override {
+        convexRewards.withdrawAndUnwrap(amount, false);
     }
 
     function beforeClaim() internal override {
@@ -70,8 +70,8 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     }
 
     /// @notice Calculates the total amount of underlying tokens the Vault holds.
-    /// @return totalUnderlyingHeld The total amount of underlying tokens the Vault holds.
-    function totalUnderlying() public view override returns (uint256) {
+    /// @return The total amount of underlying tokens the Vault holds.
+    function totalAssets() public view override returns (uint256) {
         return convexRewards.balanceOf(address(this));
     }
 }

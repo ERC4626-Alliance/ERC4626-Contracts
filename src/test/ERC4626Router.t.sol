@@ -1,6 +1,6 @@
 pragma solidity 0.8.10;
 
-import {ERC20, MockERC20} from "solmate-next/test/utils/mocks/MockERC20.sol";
+import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "./mock/MockERC4626.sol";
 
 import {IERC4626Router, ERC4626Router, IERC4626, SelfPermit} from "../ERC4626Router.sol";

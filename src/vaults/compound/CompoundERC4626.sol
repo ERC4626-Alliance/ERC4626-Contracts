@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import {ERC20, ERC4626} from "solmate-next/mixins/ERC4626.sol";
-import {SafeTransferLib} from "solmate-next/utils/SafeTransferLib.sol";
+import {ERC20, ERC4626} from "solmate/mixins/ERC4626.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 import {LibFuse} from "libcompound/LibFuse.sol";
 import {CERC20} from "libcompound/interfaces/CERC20.sol";

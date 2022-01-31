@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity >=0.5.0;
 
-import {ERC20} from "solmate-next/tokens/ERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import '../interfaces/ISelfPermit.sol';
 import '../interfaces/IERC20PermitAllowed.sol';
