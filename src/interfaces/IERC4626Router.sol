@@ -47,7 +47,7 @@ interface IERC4626Router {
      @return sharesOut the amount of shares received by `to`.
      @dev throws MinOutError   
     */
-    function withdrawFromVault(
+    function withdraw(
         IERC4626 vault,
         address to,
         uint256 amount,
@@ -83,7 +83,7 @@ interface IERC4626Router {
      @return amountOut the amount of underlying received by `to`.
      @dev throws MinOutError   
     */
-    function redeemFromVault(
+    function redeem(
         IERC4626 vault,
         address to,
         uint256 shares,

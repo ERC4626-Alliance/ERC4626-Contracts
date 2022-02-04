@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity 0.8.10;
 
-import {IERC4626, IERC4626Router, ERC20} from "./interfaces/IERC4626Router.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-
-import {SelfPermit} from "./external/SelfPermit.sol";
-import {Multicall} from "./external/Multicall.sol";
+import "./ERC4626RouterBase.sol";
 
 import {ENSReverseRecord} from "./ens/ENSReverseRecord.sol";
 
 /// @title ERC4626Router contract
 /// @author joeysantoro
-contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecord {
+contract ERC4626Router is ERC4626RouterBase, ENSReverseRecord {
     using SafeTransferLib for ERC20;
 
-    constructor(string memory name) ENSReverseRecord(name) {}
+    constructor(string memory name, IWETH9 weth) ENSReverseRecord(name) PeripheryPayments(weth) {}
+
+    // For the below, no approval needed, assumes vault is already max approved
 
     /// @inheritdoc IERC4626Router
     function depositToVault(
@@ -23,25 +21,8 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
         uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        ERC20 underlying = vault.asset();
-
-        underlying.safeTransferFrom(msg.sender, address(this), amount);
-        underlying.safeApprove(address(vault), amount);
-        if ((sharesOut = vault.deposit(amount, to)) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /// @inheritdoc IERC4626Router
-    function withdrawFromVault(
-        IERC4626 vault,
-        address to,
-        uint256 amount,
-        uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        if ((sharesOut = vault.withdraw(amount, to, msg.sender)) < minSharesOut) {
-            revert MinAmountError();
-        }
+        pullToken(vault.asset(), amount, address(this));
+        return deposit(vault, to, amount, minSharesOut);
     }
 
     /// @inheritdoc IERC4626Router
@@ -52,24 +33,8 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
         uint256 amount,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        fromVault.withdraw(amount, address(this), msg.sender);
-
-        toVault.asset().safeApprove(address(toVault), amount);
-        if ((sharesOut = toVault.deposit(amount, to)) < minSharesOut) {
-            revert MinAmountError();
-        }
-    }
-
-    /// @inheritdoc IERC4626Router
-    function redeemFromVault(
-        IERC4626 vault,
-        address to,
-        uint256 shares,
-        uint256 minAmountOut
-    ) external returns (uint256 amountOut) {
-        if ((amountOut = vault.redeem(shares, to, msg.sender)) < minAmountOut) {
-            revert MinAmountError();
-        }
+        withdraw(fromVault, address(this), amount, 0);
+        return deposit(toVault, to, amount, minSharesOut);
     }
 
     /// @inheritdoc IERC4626Router
@@ -80,11 +45,17 @@ contract ERC4626Router is IERC4626Router, SelfPermit, Multicall, ENSReverseRecor
         uint256 shares,
         uint256 minSharesOut
     ) external returns (uint256 sharesOut) {
-        uint256 amount = fromVault.redeem(shares, address(this), msg.sender);
+        uint256 amount = redeem(fromVault, address(this), shares, 0);
+        return deposit(toVault, to, amount, minSharesOut);
+    }
 
-        toVault.asset().safeApprove(address(toVault), amount);
-        if ((sharesOut = toVault.deposit(amount, to)) < minSharesOut) {
-            revert MinAmountError();
-        }
+    function redeemToDepositMax(
+        IERC4626 fromVault,
+        IERC4626 toVault,
+        address to,
+        uint256 minSharesOut
+    ) external returns (uint256 sharesOut) {
+        redeemMax(fromVault, address(this), 0);
+        return depositMax(toVault, to, minSharesOut);
     }
 }

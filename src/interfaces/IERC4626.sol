@@ -105,4 +105,32 @@ abstract contract IERC4626 is ERC20 {
       @return amount the amount of underlying tokens corresponding to the redeem call
      */
     function previewRedeem(uint256 shares) public view virtual returns (uint256 amount);
+
+    /**
+      @notice Returns the max deposit amount for a recipient
+      @param to the deposit recipient
+      @return amount the max input amount for deposit for a user
+    */
+    function maxDeposit(address to) public view virtual returns (uint256 amount);
+
+    /**
+      @notice Returns the max mint shares for a recipient
+      @param to the mint recipient
+      @return shares the max shares for mint for a user
+    */
+    function maxMint(address to) public view virtual returns (uint256 shares);
+
+    /**
+      @notice Returns the max withdraw amount for a user
+      @param from the withdraw source
+      @return amount the max amount out for withdraw for a user
+    */
+    function maxWithdraw(address from) public view virtual returns (uint256 amount);
+
+    /**
+      @notice Returns the max redeem shares for a user
+      @param from the redeem source
+      @return shares the max shares out for redeem for a user
+    */
+    function maxRedeem(address from) public view virtual returns (uint256 shares);
 }
