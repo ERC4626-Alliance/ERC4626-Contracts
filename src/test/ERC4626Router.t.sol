@@ -2,8 +2,9 @@ pragma solidity 0.8.10;
 
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "./mock/MockERC4626.sol";
+import {WETH} from "solmate/tokens/WETH.sol";
 
-import {IERC4626Router, ERC4626Router, IERC4626, SelfPermit} from "../ERC4626Router.sol";
+import {IWETH9, IERC4626Router, ERC4626Router, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626Router.sol";
 
 import {Hevm} from "./Hevm.sol";
 
@@ -13,6 +14,7 @@ contract ERC4626Test {
     IERC4626 vault;
     IERC4626 toVault;
     ERC4626Router router;
+    IWETH9 weth;
 
     Hevm VM = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
@@ -22,7 +24,9 @@ contract ERC4626Test {
         vault = IERC4626(address(new MockERC4626(underlying)));
         toVault = IERC4626(address(new MockERC4626(underlying)));
 
-        router = new ERC4626Router(""); // empty reverse ens
+        weth = IWETH9(address(new WETH()));
+
+        router = new ERC4626Router("", weth); // empty reverse ens
 
         underlying.mint(address(this), 1e18);
     }
@@ -30,6 +34,8 @@ contract ERC4626Test {
     function testDeposit() public {
 
         underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
 
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
@@ -56,6 +62,8 @@ contract ERC4626Test {
 
         underlying.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
 
+        router.approve(underlying, address(vault), 1e18);
+
         VM.prank(owner);
         router.depositToVault(vault, owner, 1e18, 1e18);
 
@@ -80,9 +88,10 @@ contract ERC4626Test {
             )
         );
 
-        bytes[] memory data = new bytes[](2);
+        bytes[] memory data = new bytes[](3);
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, underlying, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, underlying, address(vault), 1e18);
+        data[2] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, 1e18, 1e18);
 
         VM.prank(owner);
         router.multicall(data);
@@ -96,6 +105,8 @@ contract ERC4626Test {
 
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), to, 1e18, 1e18);
 
         require(vault.balanceOf(address(this)) == 0);
@@ -106,6 +117,8 @@ contract ERC4626Test {
     function testDepositBelowMinOutReverts() public {
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         try router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
             revert("fail");
         } catch {
@@ -115,6 +128,9 @@ contract ERC4626Test {
 
     function testWithdrawToDeposit() public {
         underlying.approve(address(router), type(uint).max);
+
+        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(toVault), 1e18);
 
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
@@ -133,6 +149,8 @@ contract ERC4626Test {
     function testWithdrawToBelowMinOutReverts() public {
         underlying.approve(address(router), type(uint).max);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
         require(vault.balanceOf(address(this)) == 1e18);
@@ -150,6 +168,9 @@ contract ERC4626Test {
     function testRedeemTo() public {
         underlying.approve(address(router), type(uint).max);
 
+        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(toVault), 1e18);
+
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
         require(vault.balanceOf(address(this)) == 1e18);
@@ -166,6 +187,8 @@ contract ERC4626Test {
 
     function testRedeemToBelowMinOutReverts() public {
         underlying.approve(address(router), type(uint).max);
+
+        router.approve(underlying, address(vault), 1e18);
 
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
@@ -185,10 +208,12 @@ contract ERC4626Test {
 
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        router.withdrawFromVault(vault, address(this), 1e18, 1e18);
+        router.withdraw(vault, address(this), 1e18, 1e18);
 
         require(vault.balanceOf(address(this)) == 0);
         require(underlying.balanceOf(address(this)) == 1e18);
@@ -200,6 +225,8 @@ contract ERC4626Test {
 
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
         (uint8 v, bytes32 r, bytes32 s) = VM.sign(
@@ -216,7 +243,7 @@ contract ERC4626Test {
         vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
 
         VM.prank(owner);
-        router.withdrawFromVault(vault, owner, 1e18, 1e18);
+        router.withdraw(vault, owner, 1e18, 1e18);
 
         require(vault.balanceOf(owner) == 0);
         require(underlying.balanceOf(owner) == 1e18);
@@ -228,6 +255,8 @@ contract ERC4626Test {
 
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
         (uint8 v, bytes32 r, bytes32 s) = VM.sign(
@@ -243,7 +272,7 @@ contract ERC4626Test {
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626Router.withdrawFromVault.selector, vault, owner, 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(IERC4626Router.withdraw.selector, vault, owner, 1e18, 1e18);
 
         VM.prank(owner);
         router.multicall(data);
@@ -254,10 +283,12 @@ contract ERC4626Test {
 
     function testWithdrawBelowMinOutReverts() public {
         underlying.approve(address(router), 1e18);
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        try router.withdrawFromVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
+        try router.withdraw(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
             revert("fail");
         } catch {
             // success
@@ -268,10 +299,12 @@ contract ERC4626Test {
 
         underlying.approve(address(router), 1e18);
 
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        router.redeemFromVault(vault, address(this), 1e18, 1e18);
+        router.redeem(vault, address(this), 1e18, 1e18);
 
         require(vault.balanceOf(address(this)) == 0);
         require(underlying.balanceOf(address(this)) == 1e18);
@@ -282,6 +315,8 @@ contract ERC4626Test {
         address owner = VM.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
@@ -299,7 +334,7 @@ contract ERC4626Test {
         vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
 
         VM.prank(owner);
-        router.redeemFromVault(vault, owner, 1e18, 1e18);
+        router.redeem(vault, owner, 1e18, 1e18);
 
         require(vault.balanceOf(owner) == 0);
         require(underlying.balanceOf(owner) == 1e18);
@@ -310,6 +345,8 @@ contract ERC4626Test {
         address owner = VM.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
@@ -326,7 +363,7 @@ contract ERC4626Test {
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626Router.redeemFromVault.selector, vault, owner, 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(IERC4626Router.redeem.selector, vault, owner, 1e18, 1e18);
 
         VM.prank(owner);
         router.multicall(data);
@@ -337,10 +374,13 @@ contract ERC4626Test {
 
     function testRedeemBelowMinOutReverts() public {
         underlying.approve(address(router), 1e18);
+        
+        router.approve(underlying, address(vault), 1e18);
+
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        try router.redeemFromVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
+        try router.redeem(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
             revert("fail");
         } catch {
             // success
