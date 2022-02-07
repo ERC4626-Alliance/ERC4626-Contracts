@@ -70,7 +70,6 @@ contract ERC4626Router is ERC4626RouterBase, ENSReverseRecord {
         uint256 shareBalance = vault.balanceOf(msg.sender);
         uint256 maxRedeem = vault.maxRedeem(msg.sender);
         uint256 amountShares = maxRedeem < shareBalance ? maxRedeem : shareBalance;
-        pullToken(vault, amountShares, address(this));
         return redeem(vault, to, amountShares, minAmountOut);
     }
 }

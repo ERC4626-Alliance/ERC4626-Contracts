@@ -71,8 +71,8 @@ contract ERC4626Test {
     
         router.depositMax(IERC4626(address(vault)), address(this), 3e18);
 
-        // require(vault.balanceOf(address(this)) == 3e18);
-        // require(underlying.balanceOf(address(this)) == 0);
+        require(vault.balanceOf(address(this)) == 3e18);
+        require(underlying.balanceOf(address(this)) == 0);
     }
     
     function testDepositToVault() public {
@@ -349,6 +349,21 @@ contract ERC4626Test {
 
         vault.approve(address(router), 1e18);
         router.redeem(vault, address(this), 1e18, 1e18);
+
+        require(vault.balanceOf(address(this)) == 0);
+        require(underlying.balanceOf(address(this)) == 1e18);
+    }
+
+    function testRedeemMax() public {
+
+        underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
+
+        vault.approve(address(router), 1e18);
+        router.redeemMax(vault, address(this), 1e18);
 
         require(vault.balanceOf(address(this)) == 0);
         require(underlying.balanceOf(address(this)) == 1e18);
