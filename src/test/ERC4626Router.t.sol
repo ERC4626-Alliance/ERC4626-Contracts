@@ -31,7 +31,34 @@ contract ERC4626Test {
         underlying.mint(address(this), 1e18);
     }
 
+    function testMint() public {
+        underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
+    
+        router.pullToken(underlying, 1e18, address(router));
+
+        router.mint(IERC4626(address(vault)), address(this), 1e18, 1e18);
+
+        require(vault.balanceOf(address(this)) == 1e18);
+        require(underlying.balanceOf(address(this)) == 0);
+    }
+
     function testDeposit() public {
+
+        underlying.approve(address(router), 1e18);
+
+        router.approve(underlying, address(vault), 1e18);
+    
+        router.pullToken(underlying, 1e18, address(router));
+
+        router.deposit(IERC4626(address(vault)), address(this), 1e18, 1e18);
+
+        require(vault.balanceOf(address(this)) == 1e18);
+        require(underlying.balanceOf(address(this)) == 0);
+    }
+    
+    function testDepositToVault() public {
 
         underlying.approve(address(router), 1e18);
 

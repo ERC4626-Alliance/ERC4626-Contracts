@@ -13,13 +13,6 @@ import {PeripheryPayments, IWETH9} from "./external/PeripheryPayments.sol";
 abstract contract ERC4626RouterBase is IERC4626Router, SelfPermit, Multicall, PeripheryPayments {
     using SafeTransferLib for ERC20;
 
-    function approveMint(
-        IERC4626 vault, 
-        uint256 shares
-    ) public {
-        approve(vault.asset(), address(vault), vault.previewMint(shares));
-    }
-
     function mint(
         IERC4626 vault, 
         address to,
@@ -42,23 +35,6 @@ abstract contract ERC4626RouterBase is IERC4626Router, SelfPermit, Multicall, Pe
         }
     }
 
-    function depositMax(
-        IERC4626 vault, 
-        address to,
-        uint256 minSharesOut
-    ) public returns (uint256 sharesOut) {
-        uint256 assetBalance = vault.asset().balanceOf(address(this));
-        uint256 maxDeposit = vault.maxDeposit(to);
-        return deposit(vault, to, maxDeposit > assetBalance ? maxDeposit : assetBalance, minSharesOut);
-    }
-
-    function approveWithdraw(
-        IERC4626 vault, 
-        uint256 amount
-    ) public {
-        approve(vault, address(vault), vault.previewWithdraw(amount));
-    }
-
     function withdraw(
         IERC4626 vault,
         address to,
@@ -79,15 +55,5 @@ abstract contract ERC4626RouterBase is IERC4626Router, SelfPermit, Multicall, Pe
         if ((amountOut = vault.redeem(shares, to, msg.sender)) < minAmountOut) {
             revert MinAmountError();
         }
-    }
-
-    function redeemMax(
-        IERC4626 vault, 
-        address to,
-        uint256 minAmountOut
-    ) public returns (uint256 amountOut) {
-        uint256 shareBalance = vault.balanceOf(address(this));
-        uint256 maxRedeem = vault.maxRedeem(msg.sender);
-        return redeem(vault, to, maxRedeem > shareBalance ? maxRedeem : shareBalance, minAmountOut);
     }
 }

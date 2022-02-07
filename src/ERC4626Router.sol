@@ -49,13 +49,28 @@ contract ERC4626Router is ERC4626RouterBase, ENSReverseRecord {
         return deposit(toVault, to, amount, minSharesOut);
     }
 
-    function redeemToDepositMax(
-        IERC4626 fromVault,
-        IERC4626 toVault,
+    function depositMax(
+        IERC4626 vault, 
         address to,
         uint256 minSharesOut
-    ) external returns (uint256 sharesOut) {
-        redeemMax(fromVault, address(this), 0);
-        return depositMax(toVault, to, minSharesOut);
+    ) public returns (uint256 sharesOut) {
+        ERC20 asset = vault.asset();
+        uint256 assetBalance = asset.balanceOf(msg.sender);
+        uint256 maxDeposit = vault.maxDeposit(to);
+        uint256 amount = maxDeposit < assetBalance ? maxDeposit : assetBalance;
+        pullToken(asset, amount, address(this));
+        return deposit(vault, to, amount, minSharesOut);
+    }
+
+    function redeemMax(
+        IERC4626 vault, 
+        address to,
+        uint256 minAmountOut
+    ) public returns (uint256 amountOut) {
+        uint256 shareBalance = vault.balanceOf(msg.sender);
+        uint256 maxRedeem = vault.maxRedeem(msg.sender);
+        uint256 amountShares = maxRedeem < shareBalance ? maxRedeem : shareBalance;
+        pullToken(vault, amountShares, address(this));
+        return redeem(vault, to, amountShares, minAmountOut);
     }
 }
