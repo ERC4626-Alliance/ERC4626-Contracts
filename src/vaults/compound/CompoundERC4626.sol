@@ -25,12 +25,12 @@ contract CompoundERC4626 is ERC4626 {
         cToken = _cToken;
     }
 
-    function beforeWithdraw(uint256 underlyingAmount) internal override {
+    function beforeWithdraw(uint256 underlyingAmount, uint256) internal override {
         // Withdraw the underlying tokens from the cToken.
         require(cToken.redeemUnderlying(underlyingAmount) == 0, "REDEEM_FAILED");
     }
 
-    function afterDeposit(uint256 underlyingAmount) internal override {
+    function afterDeposit(uint256 underlyingAmount, uint256) internal override {
         // Approve the underlying tokens to the cToken
         asset.safeApprove(address(cToken), underlyingAmount);
 

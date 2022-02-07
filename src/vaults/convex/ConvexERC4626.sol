@@ -55,13 +55,13 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
         convexRewards = _convexRewards;
     }
 
-    function afterDeposit(uint256 amount) internal override {
+    function afterDeposit(uint256 amount, uint256) internal override {
         uint256 poolId = convexRewards.pid();
         asset.approve(address(convexBooster), amount);
         convexBooster.deposit(poolId, amount, true);
     }
 
-    function beforeWithdraw(uint256 amount) internal override {
+    function beforeWithdraw(uint256 amount, uint256) internal override {
         convexRewards.withdrawAndUnwrap(amount, false);
     }
 

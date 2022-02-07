@@ -16,6 +16,10 @@ contract ERC4626Test {
     ERC4626Router router;
     IWETH9 weth;
 
+    bytes32 public PERMIT_TYPEHASH = keccak256(
+                                "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+                            );
+
     Hevm VM = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     function setUp() public {
@@ -57,6 +61,19 @@ contract ERC4626Test {
         require(vault.balanceOf(address(this)) == 1e18);
         require(underlying.balanceOf(address(this)) == 0);
     }
+
+    function testDepositMax() public {
+        underlying.mint(address(this), 2e18);
+
+        underlying.approve(address(router), 3e18);
+
+        router.approve(underlying, address(vault), 3e18);
+    
+        router.depositMax(IERC4626(address(vault)), address(this), 3e18);
+
+        // require(vault.balanceOf(address(this)) == 3e18);
+        // require(underlying.balanceOf(address(this)) == 0);
+    }
     
     function testDepositToVault() public {
 
@@ -82,7 +99,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     underlying.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(underlying.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
@@ -110,7 +127,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     underlying.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(underlying.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
@@ -262,7 +279,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(vault.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
@@ -292,7 +309,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(vault.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
@@ -353,7 +370,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(vault.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
@@ -383,7 +400,7 @@ contract ERC4626Test {
                 abi.encodePacked(
                     "\x19\x01",
                     vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(vault.PERMIT_TYPEHASH(), owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
                 )
             )
         );
