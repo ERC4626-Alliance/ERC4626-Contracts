@@ -27,7 +27,7 @@ abstract contract PeripheryPayments {
 
     receive() external payable {}
 
-    function approve(ERC20 token, address to, uint256 amount) public {
+    function approve(ERC20 token, address to, uint256 amount) public payable {
         token.safeApprove(to, amount);
     }
 
@@ -45,7 +45,7 @@ abstract contract PeripheryPayments {
         if (address(this).balance > 0) WETH9.deposit{value: address(this).balance}(); // wrap everything
     }
 
-    function pullToken(ERC20 token, uint256 amount, address recipient) public {
+    function pullToken(ERC20 token, uint256 amount, address recipient) public payable {
         token.safeTransferFrom(msg.sender, recipient, amount);
     }
 

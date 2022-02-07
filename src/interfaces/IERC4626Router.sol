@@ -34,7 +34,7 @@ interface IERC4626Router {
         address to,
         uint256 amount,
         uint256 minSharesOut
-    ) external returns (uint256 sharesOut);
+    ) external payable returns (uint256 sharesOut);
 
     /************************** Withdraw **************************/
 
@@ -52,7 +52,7 @@ interface IERC4626Router {
         address to,
         uint256 amount,
         uint256 minSharesOut
-    ) external returns (uint256 sharesOut);
+    ) external payable returns (uint256 sharesOut);
 
     /** 
      @notice withdraw `amount` to an ERC4626 vault.
@@ -70,7 +70,7 @@ interface IERC4626Router {
         address to,
         uint256 amount,
         uint256 minSharesOut
-    ) external returns (uint256 sharesOut);
+    ) external payable returns (uint256 sharesOut);
 
     /************************** Redeem **************************/
 
@@ -88,7 +88,7 @@ interface IERC4626Router {
         address to,
         uint256 shares,
         uint256 minAmountOut
-    ) external returns (uint256 amountOut);
+    ) external payable returns (uint256 amountOut);
 
 
     /** 
@@ -107,5 +107,5 @@ interface IERC4626Router {
         address to,
         uint256 shares,
         uint256 minSharesOut
-    ) external returns (uint256 sharesOut);
+    ) external payable returns (uint256 sharesOut);
 }

@@ -4,7 +4,7 @@ import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "./mock/MockERC4626.sol";
 import {WETH} from "solmate/tokens/WETH.sol";
 
-import {IWETH9, IERC4626Router, ERC4626Router, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626Router.sol";
+import {IWETH9, IERC4626Router, ERC4626Router, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626Router.sol";
 
 import {Hevm} from "./Hevm.sol";
 
@@ -15,6 +15,7 @@ contract ERC4626Test {
     IERC4626 toVault;
     ERC4626Router router;
     IWETH9 weth;
+    IERC4626 wethVault;
 
     bytes32 public PERMIT_TYPEHASH = keccak256(
                                 "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
@@ -22,6 +23,8 @@ contract ERC4626Test {
 
     Hevm VM = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
+    receive() external payable {}
+    
     function setUp() public {
         underlying = new MockERC20("Mock Token", "TKN", 18);
 
@@ -29,6 +32,8 @@ contract ERC4626Test {
         toVault = IERC4626(address(new MockERC4626(underlying)));
 
         weth = IWETH9(address(new WETH()));
+
+        wethVault = IERC4626(address(new MockERC4626(weth)));
 
         router = new ERC4626Router("", weth); // empty reverse ens
 
@@ -444,5 +449,42 @@ contract ERC4626Test {
         } catch {
             // success
         }
+    }
+
+    function testDepositETHToWETHVault() public {
+        router.approve(weth, address(wethVault), 1 ether);
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWETH9.selector);
+        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), 1e18, 1e18);
+
+        router.multicall{value: 1 ether}(data);
+
+        require(wethVault.balanceOf(address(this)) == 1e18);
+        require(weth.balanceOf(address(router)) == 0);
+    }
+
+    function testWithdrawETHFromWETHVault() public {
+
+        uint balanceBefore = address(this).balance;
+
+        router.approve(weth, address(wethVault), 1 ether);
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWETH9.selector);
+        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), 1e18, 1e18);
+
+        router.multicall{value: 1 ether}(data);
+
+        wethVault.approve(address(router), 1 ether);
+
+        bytes[] memory withdrawData = new bytes[](2);
+        withdrawData[0] = abi.encodeWithSelector(ERC4626RouterBase.withdraw.selector, wethVault, address(router), 1e18, 1e18);
+        withdrawData[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWETH9.selector, 1 ether, address(this));
+
+        router.multicall(withdrawData);
+
+        require(wethVault.balanceOf(address(this)) == 0);
+        require(address(this).balance == balanceBefore);
     }
 }
