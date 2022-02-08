@@ -4,7 +4,8 @@ import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "./mock/MockERC4626.sol";
 import {WETH} from "solmate/tokens/WETH.sol";
 
-import {IWETH9, IERC4626Router, ERC4626Router, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626Router.sol";
+import {IERC4626Router, ERC4626Router} from "../ERC4626Router.sol";
+import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626RouterBase.sol";
 
 import {Hevm} from "./Hevm.sol";
 
@@ -321,7 +322,7 @@ contract ERC4626Test {
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626Router.withdraw.selector, vault, owner, 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(IERC4626RouterBase.withdraw.selector, vault, owner, 1e18, 1e18);
 
         VM.prank(owner);
         router.multicall(data);
@@ -427,7 +428,7 @@ contract ERC4626Test {
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626Router.redeem.selector, vault, owner, 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(IERC4626RouterBase.redeem.selector, vault, owner, 1e18, 1e18);
 
         VM.prank(owner);
         router.multicall(data);
