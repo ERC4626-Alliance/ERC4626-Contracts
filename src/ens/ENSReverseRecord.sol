@@ -23,7 +23,7 @@ contract ENSReverseRecord {
         if (bytes(name).length != 0) setENSName(name);
     }
 
-    function setENSName(string memory name) internal {
+    function setENSName(string memory name) private {
         REVERSE_REGISTRAR.setName(name);
     }
 }
