@@ -39,6 +39,8 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     /// @notice The Convex Rewards contract (for claiming rewards)
     IConvexBaseRewardPool public immutable convexRewards;
 
+    uint256 public immutable pid;
+
     /**
      @notice Creates a new Vault that accepts a specific underlying token.
      @param _asset The ERC20 compliant token the Vault should accept.
@@ -64,6 +66,8 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
         convexBooster = _convexBooster;
         convexRewards = _convexRewards;
 
+        pid = _convexRewards.pid();
+
         asset.safeApprove(address(convexBooster), type(uint256).max);
     }
 
@@ -79,7 +83,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     }
 
     function afterDeposit(uint256 amount, uint256) internal override {
-        require(convexBooster.deposit(convexRewards.pid(), amount, true), "deposit error");
+        require(convexBooster.deposit(pid, amount, true), "deposit error");
     }
 
     function beforeWithdraw(uint256 amount, uint256) internal override {
