@@ -33,7 +33,11 @@ contract RewardsClaimer {
         // send all tokens to destination
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             ERC20 token = rewardTokens[i];
-            emit ClaimRewards(address(token), _transferAll(token, rewardDestination));
+            uint256 amount = token.balanceOf(address(this));        
+
+            token.safeTransfer(rewardDestination, amount);
+
+            emit ClaimRewards(address(token), amount);
         }
     }
 
@@ -47,8 +51,4 @@ contract RewardsClaimer {
 
     /// @notice hook to accrue/pull in rewards, if needed
     function beforeClaim() internal virtual {}
-
-    function _transferAll(ERC20 token, address to) internal returns (uint256 amount) {
-        token.safeTransfer(to, amount = token.balanceOf(address(this)));
-    }
 }
