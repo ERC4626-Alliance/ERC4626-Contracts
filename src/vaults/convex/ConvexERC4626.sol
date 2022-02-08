@@ -63,6 +63,8 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     {
         convexBooster = _convexBooster;
         convexRewards = _convexRewards;
+
+        asset.safeApprove(address(convexBooster), type(uint256).max);
     }
 
     function updateRewardTokens() public {
@@ -77,9 +79,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     }
 
     function afterDeposit(uint256 amount, uint256) internal override {
-        uint256 poolId = convexRewards.pid();
-        asset.safeApprove(address(convexBooster), amount);
-        require(convexBooster.deposit(poolId, amount, true), "deposit error");
+        require(convexBooster.deposit(convexRewards.pid(), amount, true), "deposit error");
     }
 
     function beforeWithdraw(uint256 amount, uint256) internal override {
