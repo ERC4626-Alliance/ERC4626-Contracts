@@ -79,15 +79,15 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     function afterDeposit(uint256 amount, uint256) internal override {
         uint256 poolId = convexRewards.pid();
         asset.safeApprove(address(convexBooster), amount);
-        convexBooster.deposit(poolId, amount, true);
+        require(convexBooster.deposit(poolId, amount, true), "deposit error");
     }
 
     function beforeWithdraw(uint256 amount, uint256) internal override {
-        convexRewards.withdrawAndUnwrap(amount, false);
+        require(convexRewards.withdrawAndUnwrap(amount, false), "withdraw error");
     }
 
     function beforeClaim() internal override {
-        convexRewards.getReward(address(this), true);
+        require(convexRewards.getReward(address(this), true), "rewards error");
     }
 
     /// @notice Calculates the total amount of underlying tokens the Vault holds.
