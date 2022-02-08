@@ -30,8 +30,9 @@ contract RewardsClaimer {
     function claimRewards() public {
         beforeClaim(); // hook to accrue/pull in rewards, if needed
 
+        uint256 len = rewardTokens.length;
         // send all tokens to destination
-        for (uint256 i = 0; i < rewardTokens.length; i++) {
+        for (uint256 i = 0; i < len; i++) {
             ERC20 token = rewardTokens[i];
             uint256 amount = token.balanceOf(address(this));        
 
