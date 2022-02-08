@@ -14,7 +14,7 @@ interface IReverseRegistrar {
  @author joeysantoro
  @notice sets reverse ENS record against canonical ReverseRegistrar https://docs.ens.domains/contract-api-reference/reverseregistrar.
 */
-contract ENSReverseRecord {
+abstract contract ENSReverseRecord {
 
     /// @notice the ENS Reverse Registrar
     IReverseRegistrar public constant REVERSE_REGISTRAR = IReverseRegistrar(0x084b1c3C81545d370f3634392De611CaaBFf8148);
