@@ -19,6 +19,13 @@ interface IConvexBaseRewardPool {
     function withdrawAndUnwrap(uint256 amount, bool claim) external returns(bool);
     function getReward(address _account, bool _claimExtras) external returns(bool);
     function balanceOf(address account) external view returns (uint256);
+    function extraRewards(uint256 index) external view returns(IRewards);
+    function extraRewardsLength() external view returns(uint);
+    function rewardToken() external view returns(ERC20);
+}
+
+interface IRewards {
+    function rewardToken() external view returns(ERC20);
 }
 
 /// @title Convex Finance Yield Bearing Vault
@@ -56,6 +63,17 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     {
         convexBooster = _convexBooster;
         convexRewards = _convexRewards;
+    }
+
+    function updateRewardTokens() public {
+        uint256 len = convexRewards.extraRewardsLength();
+        require(len < 5, "exceed max rewards");
+        delete rewardTokens;
+
+        for (uint256 i = 0; i < len; i++) {
+            rewardTokens.push(convexRewards.extraRewards(i).rewardToken());
+        }
+        rewardTokens.push(convexRewards.rewardToken());
     }
 
     function afterDeposit(uint256 amount, uint256) internal override {
