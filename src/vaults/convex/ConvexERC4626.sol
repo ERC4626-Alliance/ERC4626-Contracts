@@ -2,6 +2,8 @@
 pragma solidity 0.8.10;
 
 import {ERC20, ERC4626} from "solmate/mixins/ERC4626.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+
 import {RewardsClaimer} from "../../utils/RewardsClaimer.sol";
 
 // Docs: https://docs.convexfinance.com/convexfinanceintegration/booster
@@ -22,6 +24,7 @@ interface IConvexBaseRewardPool {
 /// @title Convex Finance Yield Bearing Vault
 /// @author joeysantoro
 contract ConvexERC4626 is ERC4626, RewardsClaimer {
+    using SafeTransferLib for ERC20;
 
     /// @notice The Convex Booster contract (for deposit/withdraw)
     IConvexBooster public immutable convexBooster;
@@ -57,7 +60,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
 
     function afterDeposit(uint256 amount, uint256) internal override {
         uint256 poolId = convexRewards.pid();
-        asset.approve(address(convexBooster), amount);
+        asset.safeApprove(address(convexBooster), amount);
         convexBooster.deposit(poolId, amount, true);
     }
 
