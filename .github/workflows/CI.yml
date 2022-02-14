@@ -20,8 +20,5 @@ jobs:
         with:
           version: nightly
 
-      - name: Run lint check
-        run: npm run lint:check
-
       - name: Run tests
         run: forge test
