@@ -68,7 +68,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
 
         pid = _convexRewards.pid();
 
-        asset.safeApprove(address(convexBooster), type(uint256).max);
+        _asset.approve(address(_convexBooster), type(uint256).max);
     }
 
     function updateRewardTokens() public {
