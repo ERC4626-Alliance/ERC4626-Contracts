@@ -15,6 +15,7 @@ interface FuseFeeDist {
 contract Upgrade is DSTestPlus {
 
     ERC4626 oldPlugin = ERC4626(0xE5Af1Ac8B9b2c1e1912a051Da12C48f25b771b1d);
+    ERC4626 newPlugin = ERC4626(0xaa189e7F4Aac757216B62849f78f1236749Ba814);
 
     ERC20 d3 = ERC20(0xBaaa1F5DbA42C3389bDbc2c9D2dE134F5cD0Dc89);
 
@@ -25,20 +26,6 @@ contract Upgrade is DSTestPlus {
     FuseFeeDist admin = FuseFeeDist(0xa731585ab05fC9f83555cf9Bff8F58ee94e18F85);
 
     function testUpgrade() public {
-        ERC20[] memory rewards = new ERC20[](2);
-        rewards[0] = ERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
-        rewards[1] = ERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
-
-        ERC4626 plugin = new ConvexERC4626(
-            d3,
-            "d3 Convex Plugin",
-            "d3CVX",
-            IConvexBooster(0xF403C135812408BFbE8713b5A23a04b3D48AAE31),
-            IConvexBaseRewardPool(0x329cb014b562d5d42927cfF0dEdF4c13ab0442EF),
-            0x5ae217dE26f6Ff5F481C6e10ec48b2cf2fc857C8,
-            rewards
-        );
-
         address[] memory pools = new address[](1);
         pools[0] = fD3;
 
@@ -49,12 +36,13 @@ contract Upgrade is DSTestPlus {
         bool[] memory status = new bool[](1);
         status[0] = true;
 
-        bytes memory data = abi.encodeWithSignature("_setImplementationSafe(address,bool,bytes)", 0xbfb8D550B53F64F581df1Da41DDa0CB9E596Aa0E, false, abi.encode(address(plugin)));
+        // bytes memory data = abi.encodeWithSignature("_setImplementationSafe(address,bool,bytes)", 0xbfb8D550B53F64F581df1Da41DDa0CB9E596Aa0E, false, abi.encode(address(newPlugin)));
+        bytes memory data = hex"50d85b73000000000000000000000000bfb8d550b53f64f581df1da41dda0cb9e596aa0e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000aa189e7f4aac757216b62849f78f1236749ba814";
         hevm.startPrank(0x5eA4A9a7592683bF0Bc187d6Da706c6c4770976F);
         admin._editCErc20DelegateWhitelist(impls, impls, allowResign, status);
         admin._callPool(pools, data);
 
-        require(plugin.totalAssets() > 30_000_000e18, "totalAssets");
+        require(newPlugin.totalAssets() > 30_000_000e18, "totalAssets");
         require(oldPlugin.totalAssets() == 0, "old empty");
     }
 }
