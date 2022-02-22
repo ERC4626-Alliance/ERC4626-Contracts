@@ -5,10 +5,12 @@ import "./CErc20.sol";
 import "../../interfaces/IERC4626.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 /// @title ERC4626 wrapper around a Cerc20
 /// @author Fei Protocol
 contract CompoundERC4626 is IERC4626 {
+    using FixedPointMathLib for uint256;
     using SafeTransferLib for ERC20;
     using SafeTransferLib for CErc20;
 
@@ -49,6 +51,9 @@ contract CompoundERC4626 is IERC4626 {
 
     /// @notice Total amount of the underlying asset that
     /// is "managed" by Vault.
+    /// @dev note that the amount might not be 100% exact,
+    /// as totalBorrows() does not account for the accumulated
+    /// interest since last cToken interaction (it uses exchangeRateStored).
     function totalAssets() external view override returns(uint256) {
         // totalBorrows is slightly off because 
         return cToken.getCash() + cToken.totalBorrows();
@@ -61,12 +66,39 @@ contract CompoundERC4626 is IERC4626 {
     /// @notice Mints `shares` Vault shares to `receiver` by
     /// depositing exactly `amount` of underlying tokens.
     function deposit(uint256 assets, address receiver) external override returns(uint256 shares) {
+        // enter vault (mint shares, deposit underlying in cToken)
+        return shares = _enterVault(assets, receiver);
+    }
+
+    /// @notice Mints exactly `shares` Vault shares to `receiver`
+    /// by depositing `amount` of underlying tokens.
+    /// @dev the exchangeRateCurrent() is used, so the cToken will
+    /// accumulate interest. Amount of assets is rounded up, and
+    /// amount of shares minted is rounded down, so the desired and
+    /// actual amount of shares minted should match.
+    function mint(uint256 shares, address receiver) external override returns(uint256 assets) {
+        // compute exact amount of assets to send
+        uint256 exchangeRate = cToken.exchangeRateCurrent();
+        assets = shares.mulWadUp(exchangeRate);
+
+        // enter vault (mint shares, deposit underlying in cToken)
+        uint256 actualShares = _enterVault(assets, receiver);
+
+        // double check no rounding errors
+        assert(shares == actualShares);
+
+        return assets;
+    }
+
+    /// @notice Enter the vault with `assets` assets, and mints `shares`
+    /// shares to the user `receiver`.
+    function _enterVault(uint256 assets, address receiver) internal returns(uint256 shares) {
         // transfer user tokens to self
         cTokenUnderlying.safeTransferFrom(msg.sender, address(this), assets);
 
         // mint cTokens
         cTokenUnderlying.approve(address(cToken), assets);
-        uint256 balanceBefore = cToken.balanceOf(address(this));
+        uint256 balanceBefore = totalSupply; // identical to cToken.balanceOf(address(this))
         require(cToken.mint(assets) == 0, "CompoundERC4626: error on cToken.mint");
         shares = cToken.balanceOf(address(this)) - balanceBefore;
 
@@ -76,53 +108,24 @@ contract CompoundERC4626 is IERC4626 {
         // emit event
         emit Deposit(msg.sender, receiver, assets, shares);
 
+        // return the amount of shares minted
         return shares;
-    }
-
-    /// @notice Mints exactly `shares` Vault shares to `receiver`
-    /// by depositing `amount` of underlying tokens.
-    function mint(uint256 shares, address receiver) external override returns(uint256 assets) {
-        // compute exact amount of assets to send
-        uint256 exchangeRate = cToken.exchangeRateCurrent();
-        assets = shares * exchangeRate / 1e18;
-
-        // mint cTokens
-        cTokenUnderlying.safeTransferFrom(msg.sender, address(this), assets);
-        cTokenUnderlying.approve(address(cToken), assets);
-        uint256 balanceBefore = cToken.balanceOf(address(this));
-        require(cToken.mint(assets) == 0, "CompoundERC4626: error on cToken.mint");
-        uint256 actualShares = cToken.balanceOf(address(this)) - balanceBefore;
-        assert(shares == actualShares); // double check no rounding errors
-
-        // mint shares to receiver
-        _mint(receiver, shares);
-
-        // emit event
-        emit Deposit(msg.sender, receiver, assets, shares);
-
-        return assets;
     }
 
     /// @notice Redeems `shares` from `owner` and sends `assets`
     /// of underlying tokens to `receiver`.
     function withdraw(uint256 assets, address receiver, address owner) external override returns(uint256 shares) {
         // redeem cTokens and get the actual number of shares burnt
-        uint256 balanceBefore = cToken.balanceOf(address(this));
+        // This is done before allowance check, because we don't know
+        // the actual number of shares burnt until we redeem.
+        uint256 balanceBefore = totalSupply; // identical to cToken.balanceOf(address(this))
         require(cToken.redeemUnderlying(assets) == 0, "CompoundERC4626: error on cToken.redeemUnderlying");
         shares = balanceBefore - cToken.balanceOf(address(this));
 
         // Check that owner approved spending on behalf of the caller
-        if (msg.sender != owner) {
-            uint256 allowed = allowance[owner][msg.sender];
-            require(allowed >= shares, "CompoundERC4626: spender not authorized");
-            if (allowed != type(uint256).max) {
-                allowance[owner][msg.sender] = allowed - shares;
-            }
-        }
-
-        // Burn the owner's shares
-        // This checks that the owner has enough shares
-        _burn(owner, shares);
+        // Then, Burn the owner's shares.
+        // This checks that the owner has enough shares.
+        _updateAllowanceAndBurnShares(owner, shares);
 
         // transfer underlying to receiver
         cTokenUnderlying.transfer(receiver, assets);
@@ -137,6 +140,27 @@ contract CompoundERC4626 is IERC4626 {
     /// of underlying tokens to `receiver`.
     function redeem(uint256 shares, address receiver, address owner) external override returns(uint256 assets) {
         // Check that owner approved spending on behalf of the caller
+        // Then, Burn the owner's shares.
+        // This checks that the owner has enough shares.
+        _updateAllowanceAndBurnShares(owner, shares);
+
+        // redeem cTokens
+        require(cToken.redeem(shares) == 0, "CompoundERC4626: error on cToken.redeemUnderlying");
+        assets = cTokenUnderlying.balanceOf(address(this)); // 0 balance before
+
+        // transfer underlying to receiver
+        cTokenUnderlying.transfer(receiver, assets);
+
+        // emit event
+        emit Withdraw(msg.sender, receiver, assets, shares);
+
+        return assets;
+    }
+
+    /// @notice Check that owner approved spending on behalf of the caller.
+    /// Then, Burn the owner's shares. This checks that the owner has enough shares.
+    function _updateAllowanceAndBurnShares(address owner, uint256 shares) internal {
+        // Check that owner approved spending on behalf of the caller
         if (msg.sender != owner) {
             uint256 allowed = allowance[owner][msg.sender];
             require(allowed >= shares, "CompoundERC4626: spender not authorized");
@@ -146,21 +170,9 @@ contract CompoundERC4626 is IERC4626 {
         }
 
         // Burn the owner's shares
-        // This checks that the owner has enough shares
+        // This checks that the owner has enough shares,
+        // because the owner balance underflows otherwise.
         _burn(owner, shares);
-
-        // redeem cTokens
-        uint256 balanceBefore = cTokenUnderlying.balanceOf(address(this));
-        require(cToken.redeem(shares) == 0, "CompoundERC4626: error on cToken.redeemUnderlying");
-        assets = cTokenUnderlying.balanceOf(address(this)) - balanceBefore;
-
-        // transfer underlying to receiver
-        cTokenUnderlying.transfer(receiver, assets);
-
-        // emit event
-        emit Withdraw(msg.sender, receiver, assets, shares);
-
-        return assets;
     }
 
     /*///////////////////////////////////////////////////////////////
