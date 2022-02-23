@@ -39,6 +39,9 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     /// @notice The Convex Rewards contract (for claiming rewards)
     IConvexBaseRewardPool public immutable convexRewards;
 
+    /// @notice Convex token
+    address public immutable CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
+
     uint256 public immutable pid;
 
     /**
@@ -75,10 +78,13 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
         uint256 len = convexRewards.extraRewardsLength();
         require(len < 5, "exceed max rewards");
         delete rewardTokens;
+        bool cvxReward;
 
         for (uint256 i = 0; i < len; i++) {
             rewardTokens.push(convexRewards.extraRewards(i).rewardToken());
+            if (convexRewards.extraRewards(i).rewardToken() == CVX) cvxReward = true;
         }
+        if (!cvxReward) rewardTokens.push(CVX);
         rewardTokens.push(convexRewards.rewardToken());
     }
 
