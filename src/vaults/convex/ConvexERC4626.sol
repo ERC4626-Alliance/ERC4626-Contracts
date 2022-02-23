@@ -40,7 +40,7 @@ contract ConvexERC4626 is ERC4626, RewardsClaimer {
     IConvexBaseRewardPool public immutable convexRewards;
 
     /// @notice Convex token
-    address public immutable CVX = 0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B;
+    ERC20 CVX = ERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
 
     uint256 public immutable pid;
 
