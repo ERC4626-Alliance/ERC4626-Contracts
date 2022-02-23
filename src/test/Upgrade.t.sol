@@ -24,7 +24,7 @@ contract Upgrade is DSTestPlus {
     // FEI-3crv Curve Gauge
     address fei3crvGauge = 0xdC69D4cB5b86388Fff0b51885677e258883534ae;
     // ConvexERC4626 for FEI-3crv
-    address newPlugin = 0x7ED904d3BE134b3C44dcBA0901A51C4eCDB364B1;
+    address newPlugin = 0x410bC78B149A3cdbF9d9739B161F75AfBc9E88BA;
     // CToken implementation that supports plugins (CErc20PluginDelegate)
     address CErc20PluginDelegate = 0xbfb8D550B53F64F581df1Da41DDa0CB9E596Aa0E;
     // Rari admin
