@@ -61,13 +61,13 @@ contract Upgrade is DSTestPlus {
         bool[] memory status = new bool[](1);
         status[0] = true;
 
-        bytes memory data = abi.encodeWithSignature(
+        /*bytes memory data = abi.encodeWithSignature(
           "_setImplementationSafe(address,bool,bytes)",
           CErc20PluginDelegate,
           false,
           abi.encode(address(newPlugin))
-        );
-        //bytes memory data = hex"50d85b73000000000000000000000000bfb8d550b53f64f581df1da41dda0cb9e596aa0e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000007ED904d3BE134b3C44dcBA0901A51C4eCDB364B1";
+        );*/
+        bytes memory data = hex"50d85b73000000000000000000000000bfb8d550b53f64f581df1da41dda0cb9e596aa0e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000410bC78B149A3cdbF9d9739B161F75AfBc9E88BA";
         vm.startPrank(fuseAdmin);
         FuseFeeDist(fuseFeeDist)._editCErc20DelegateWhitelist(impls, impls, allowResign, status);
         FuseFeeDist(fuseFeeDist)._callPool(pools, data);
