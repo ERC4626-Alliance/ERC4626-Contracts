@@ -32,9 +32,10 @@ contract ERC4626Router is IERC4626Router, ERC4626RouterBase, ENSReverseRecord {
         IERC4626 toVault,
         address to,
         uint256 amount,
+        uint256 maxSharesIn,
         uint256 minSharesOut
     ) external payable override returns (uint256 sharesOut) {
-        withdraw(fromVault, address(this), amount, type(uint256).max);
+        withdraw(fromVault, address(this), amount, maxSharesIn);
         return deposit(toVault, to, amount, minSharesOut);
     }
 
@@ -46,6 +47,7 @@ contract ERC4626Router is IERC4626Router, ERC4626RouterBase, ENSReverseRecord {
         uint256 shares,
         uint256 minSharesOut
     ) external payable override returns (uint256 sharesOut) {
+        // amount out passes through so only one slippage check is needed
         uint256 amount = redeem(fromVault, address(this), shares, 0);
         return deposit(toVault, to, amount, minSharesOut);
     }

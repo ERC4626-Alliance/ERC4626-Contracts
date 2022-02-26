@@ -20,8 +20,17 @@ import "./IERC4626.sol";
 interface IERC4626RouterBase {
     /************************** Errors **************************/
 
-    /// @notice thrown when amount of shares/assets received is below the min set by caller
+    /// @notice thrown when amount of assets received is below the min set by caller
     error MinAmountError();
+
+    /// @notice thrown when amount of shares received is below the min set by caller
+    error MinSharesError();
+
+    /// @notice thrown when amount of assets received is above the max set by caller
+    error MaxAmountError();
+
+    /// @notice thrown when amount of shares received is above the max set by caller
+    error MaxSharesError();
 
     /************************** Mint **************************/
     
@@ -32,7 +41,7 @@ interface IERC4626RouterBase {
      @param shares The amount of shares to mint from `vault`.
      @param maxAmountIn The max amount of assets used to mint.
      @return amountIn the amount of assets used to mint by `to`.
-     @dev throws MinOutError   
+     @dev throws MaxAmountError   
     */
     function mint(
         IERC4626 vault,
@@ -50,7 +59,7 @@ interface IERC4626RouterBase {
      @param amount The amount of assets to deposit to `vault`.
      @param minSharesOut The min amount of `vault` shares received by `to`.
      @return sharesOut the amount of shares received by `to`.
-     @dev throws MinOutError   
+     @dev throws MinSharesError   
     */
     function deposit(
         IERC4626 vault,
@@ -68,7 +77,7 @@ interface IERC4626RouterBase {
      @param amount The amount of assets to withdraw from vault.
      @param minSharesOut The min amount of shares received by `to`.
      @return sharesOut the amount of shares received by `to`.
-     @dev throws MinOutError   
+     @dev throws MaxSharesError   
     */
     function withdraw(
         IERC4626 vault,
@@ -86,7 +95,7 @@ interface IERC4626RouterBase {
      @param shares The amount of shares to redeem from vault.
      @param minAmountOut The min amount of assets received by `to`.
      @return amountOut the amount of assets received by `to`.
-     @dev throws MinOutError   
+     @dev throws MinAmountError   
     */
     function redeem(
         IERC4626 vault,
