@@ -331,18 +331,14 @@ contract ERC4626Test {
         require(underlying.balanceOf(owner) == 1e18);
     }
 
-    function testWithdrawBelowMinOutReverts() public {
+    function testFailWithdrawAboveMaxOut() public {
         underlying.approve(address(router), 1e18);
         router.approve(underlying, address(vault), 1e18);
 
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        try router.withdraw(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
-            revert("fail");
-        } catch {
-            // success
-        }
+        router.withdraw(IERC4626(address(vault)), address(this), 1e18, 0.9e18);
     }
 
     function testRedeem() public {

@@ -34,7 +34,7 @@ contract ERC4626Router is IERC4626Router, ERC4626RouterBase, ENSReverseRecord {
         uint256 amount,
         uint256 minSharesOut
     ) external payable override returns (uint256 sharesOut) {
-        withdraw(fromVault, address(this), amount, 0);
+        withdraw(fromVault, address(this), amount, type(uint256).max);
         return deposit(toVault, to, amount, minSharesOut);
     }
 
