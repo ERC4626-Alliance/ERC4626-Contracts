@@ -55,8 +55,13 @@ contract CompoundERC4626 is IERC4626 {
     /// as totalBorrows() does not account for the accumulated
     /// interest since last cToken interaction (it uses exchangeRateStored).
     function totalAssets() external view override returns(uint256) {
-        // totalBorrows is slightly off because 
-        return cToken.getCash() + cToken.totalBorrows();
+        // totalBorrows is slightly off because it uses exchangeRateStored
+        // and not exchangeRateCurrent, so it does not count accrued
+        // interest since last cToken interaction.
+        uint256 cTokenAssets = cToken.getCash() + cToken.totalBorrows();
+        // return not all assets in the cToken, but only the ones managed
+        // by the vault.
+        return cTokenAssets * totalSupply / cToken.totalSupply();
     }
 
     /*///////////////////////////////////////////////////////////////
