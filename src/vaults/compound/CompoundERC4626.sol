@@ -204,8 +204,9 @@ contract CompoundERC4626 is IERC4626 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their deposit at the current block, given
     /// current on-chain conditions.
-    function previewDeposit(uint256 assets) external view override returns(uint256 shares) {
-        return convertToShares(assets);
+    function previewDeposit(uint256 assets) external override returns(uint256 shares) {
+        uint256 exchangeRate = cToken.exchangeRateCurrent();
+        return shares = assets.divWadDown(exchangeRate);
     }
 
     /// @notice Total number of underlying shares that can be minted
@@ -218,8 +219,9 @@ contract CompoundERC4626 is IERC4626 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their mint at the current block, given
     /// current on-chain conditions.
-    function previewMint(uint256 shares) external view override returns(uint256 assets) {
-        return convertToAssets(shares);
+    function previewMint(uint256 shares) external override returns(uint256 assets) {
+        uint256 exchangeRate = cToken.exchangeRateCurrent();
+        return assets = shares.mulWadUp(exchangeRate);
     }
 
     /// @notice Total number of underlying assets that can be
@@ -233,8 +235,9 @@ contract CompoundERC4626 is IERC4626 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their withdrawal at the current block,
     /// given current on-chain conditions.
-    function previewWithdraw(uint256 assets) external view override returns(uint256 shares) {
-        return convertToShares(assets);
+    function previewWithdraw(uint256 assets) external override returns(uint256 shares) {
+        uint256 exchangeRate = cToken.exchangeRateCurrent();
+        return shares = assets.divWadDown(exchangeRate);
     }
 
     /// @notice Total number of underlying shares that can be
@@ -247,7 +250,8 @@ contract CompoundERC4626 is IERC4626 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their redeemption at the current block,
     /// given current on-chain conditions.
-    function previewRedeem(uint256 shares) external view override returns(uint256 assets) {
-        return convertToAssets(shares);
+    function previewRedeem(uint256 shares) external override returns(uint256 assets) {
+        uint256 exchangeRate = cToken.exchangeRateCurrent();
+        return assets = shares.mulWadDown(exchangeRate);
     }
 }

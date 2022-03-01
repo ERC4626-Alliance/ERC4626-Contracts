@@ -221,7 +221,7 @@ contract TestCompoundERC4626 {
         require(actual == expected);
     }
     
-    function testPreviewDeposit(uint128 assets) public view {
+    function testPreviewDeposit(uint128 assets) public {
         uint256 expected = uint256(assets) / 2;
         uint256 actual = vault.previewDeposit(assets);
         require(actual == expected);
@@ -234,7 +234,7 @@ contract TestCompoundERC4626 {
         require(actual == expected);
     }
     
-    function testPreviewMint(uint128 shares) public view {
+    function testPreviewMint(uint128 shares) public {
         uint256 expected = uint256(shares) * 2;
         uint256 actual = vault.previewMint(shares);
         require(actual == expected);
@@ -251,7 +251,7 @@ contract TestCompoundERC4626 {
         require(vault.maxWithdraw(owner) == 1e18);
     }
     
-    function testPreviewWithdraw(uint128 assets) public view {
+    function testPreviewWithdraw(uint128 assets) public {
         uint256 expected = assets / 2;
         uint256 actual = vault.previewWithdraw(assets);
         require(actual == expected);
@@ -268,9 +268,86 @@ contract TestCompoundERC4626 {
         require(vault.maxRedeem(owner) == 1e17);
     }
     
-    function testPreviewRedeem(uint128 shares) public view {
+    function testPreviewRedeem(uint128 shares) public {
         uint256 expected = uint256(shares) * 2;
         uint256 actual = vault.previewRedeem(shares);
         require(actual == expected);
+    }
+
+    function testPreviewMintCoherence(uint128 _shares) public {
+        uint256 shares = uint256(_shares) + 1; // don't want to fuzz zero
+
+        // set a "random" cToken change rate, that allows to test
+        // for rounding errors
+        cToken.setEffectiveExchangeRate(1234567891011121311);
+
+        uint256 previewAssets = vault.previewMint(shares);
+        token.mint(address(this), previewAssets);
+        token.approve(address(vault), previewAssets);
+        uint256 balanceBefore = token.balanceOf(address(this));
+        uint256 returnedAssets = vault.mint(shares, address(this));
+        uint256 spentAssets = balanceBefore - token.balanceOf(address(this));
+
+        require(previewAssets == spentAssets);
+        require(returnedAssets == spentAssets);
+    }
+
+    function testPreviewDepositCoherence(uint128 _assets) public {
+        uint256 assets = uint256(_assets) + 1; // don't want to fuzz zero
+
+        // set a "random" cToken change rate, that allows to test
+        // for rounding errors
+        cToken.setEffectiveExchangeRate(1234567891011121311);
+
+        uint256 previewShares = vault.previewDeposit(assets);
+        token.mint(address(this), assets);
+        token.approve(address(vault), assets);
+        uint256 balanceBefore = vault.balanceOf(address(this));
+        uint256 returnedShares = vault.deposit(assets, address(this));
+        uint256 receivedShares = vault.balanceOf(address(this)) - balanceBefore;
+
+        require(previewShares == receivedShares);
+        require(returnedShares == receivedShares);
+    }
+
+    function testPreviewRedeemCoherence(uint128 _shares) public {
+        uint256 shares = uint256(_shares) + 1; // don't want to fuzz zero
+
+        // set a "random" cToken change rate, that allows to test
+        // for rounding errors
+        cToken.setEffectiveExchangeRate(1234567891011121311);
+
+        token.mint(address(this), type(uint256).max);
+        token.approve(address(vault), type(uint256).max);
+        vault.mint(shares, address(this));
+        require(vault.balanceOf(address(this)) == shares);
+
+        uint256 previewAssets = vault.previewRedeem(shares);
+        uint256 balanceBefore = token.balanceOf(address(this));
+        uint256 returnedAssets = vault.redeem(shares, address(this), address(this));
+        uint256 receivedAssets = token.balanceOf(address(this)) - balanceBefore;
+
+        require(previewAssets == receivedAssets);
+        require(returnedAssets == receivedAssets);
+    }
+
+    function testPreviewWithdrawCoherence(uint128 _assets) public {
+        uint256 assets = uint256(_assets) + 1; // don't want to fuzz zero
+
+        // set a "random" cToken change rate, that allows to test
+        // for rounding errors
+        cToken.setEffectiveExchangeRate(1234567891011121311);
+
+        token.mint(address(this), assets);
+        token.approve(address(vault), assets);
+        vault.deposit(assets, address(this));
+
+        uint256 previewShares = vault.previewWithdraw(assets);
+        uint256 balanceBefore = vault.balanceOf(address(this));
+        uint256 returnedShares = vault.withdraw(assets, address(this), address(this));
+        uint256 spentShares = balanceBefore - vault.balanceOf(address(this));
+
+        require(previewShares == spentShares);
+        require(returnedShares == spentShares);
     }
 }
