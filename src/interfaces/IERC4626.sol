@@ -85,7 +85,7 @@ abstract contract IERC4626 is ERC20 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their deposit at the current block, given
     /// current on-chain conditions.
-    function previewDeposit(uint256 assets) external virtual returns(uint256 shares);
+    function previewDeposit(uint256 assets) external view virtual returns(uint256 shares);
 
     /// @notice Total number of underlying shares that can be minted
     /// for `owner`, where `owner` corresponds to the input
@@ -95,7 +95,7 @@ abstract contract IERC4626 is ERC20 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their mint at the current block, given
     /// current on-chain conditions.
-    function previewMint(uint256 shares) external virtual returns(uint256 assets);
+    function previewMint(uint256 shares) external view virtual returns(uint256 assets);
 
     /// @notice Total number of underlying assets that can be
     /// withdrawn from the Vault by `owner`, where `owner`
@@ -105,7 +105,7 @@ abstract contract IERC4626 is ERC20 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their withdrawal at the current block,
     /// given current on-chain conditions.
-    function previewWithdraw(uint256 assets) external virtual returns(uint256 shares);
+    function previewWithdraw(uint256 assets) external view virtual returns(uint256 shares);
 
     /// @notice Total number of underlying shares that can be
     /// redeemed from the Vault by `owner`, where `owner` corresponds
@@ -115,5 +115,5 @@ abstract contract IERC4626 is ERC20 {
     /// @notice Allows an on-chain or off-chain user to simulate
     /// the effects of their redeemption at the current block,
     /// given current on-chain conditions.
-    function previewRedeem(uint256 shares) external virtual returns(uint256 assets);
+    function previewRedeem(uint256 shares) external view virtual returns(uint256 assets);
 }

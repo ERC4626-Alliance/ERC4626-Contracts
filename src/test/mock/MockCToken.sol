@@ -2,18 +2,35 @@
 pragma solidity ^0.8.10;
 
 import {MockERC20} from "./MockERC20.sol";
+import {CERC20} from "libcompound/interfaces/CERC20.sol";
+import {InterestRateModel} from "libcompound/interfaces/InterestRateModel.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
 
-interface CToken {
-    function redeemUnderlying(uint redeemAmount) external returns (uint);
-    function exchangeRateStored() external view returns (uint);
-    function balanceOf(address account) external view returns (uint);
+contract MockInterestRateModel is InterestRateModel {
+    function getBorrowRate(
+        uint256,
+        uint256,
+        uint256
+    ) external view override returns (uint256) {
+        return 0;
+    }
+
+    function getSupplyRate(
+        uint256,
+        uint256,
+        uint256,
+        uint256
+    ) external view override returns (uint256) {
+        return 0;
+    }
 }
 
-contract MockCToken is MockERC20 {
+contract MockCToken is MockERC20, CERC20 {
 
     MockERC20 public token;
     bool public error;
     bool public isCEther;
+    InterestRateModel public irm;
 
     uint256 private constant EXCHANGE_RATE_SCALE = 1e18;
     uint256 public effectiveExchangeRate = 2e18;
@@ -21,6 +38,7 @@ contract MockCToken is MockERC20 {
     constructor(address _token, bool _isCEther) {
         token = MockERC20(_token);
         isCEther = _isCEther;
+        irm = new MockInterestRateModel();
     }
 
     function setError(bool _error) external {
@@ -35,18 +53,26 @@ contract MockCToken is MockERC20 {
         return true;
     }
 
-    function underlying() external view returns(address) {
-        return address(token);
+    function underlying() external view override returns(ERC20) {
+        return ERC20(address(token));
+    }
+
+    function balanceOfUnderlying(address) external view override returns(uint256) {
+        return 0;
     }
 
     function mint() external payable {
         _mint(msg.sender, msg.value * EXCHANGE_RATE_SCALE / effectiveExchangeRate);
     }
 
-    function mint(uint256 amount) external returns (uint) {
+    function mint(uint256 amount) external override returns (uint) {
         token.transferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount * EXCHANGE_RATE_SCALE/ effectiveExchangeRate);
+        _mint(msg.sender, amount * EXCHANGE_RATE_SCALE / effectiveExchangeRate);
         return error ? 1 : 0;
+    }
+
+    function borrow(uint256) external override returns (uint256) {
+        return 0;
     }
 
     function redeem(uint redeemTokens) external returns (uint) {
@@ -60,7 +86,7 @@ contract MockCToken is MockERC20 {
         return error ? 1 : 0;
     }
     
-    function redeemUnderlying(uint redeemAmount) external returns (uint) {
+    function redeemUnderlying(uint redeemAmount) external override returns (uint) {
         _burn(msg.sender, redeemAmount * EXCHANGE_RATE_SCALE / effectiveExchangeRate);
         if (address(this).balance >= redeemAmount) {
             payable(msg.sender).transfer(redeemAmount);
@@ -70,11 +96,11 @@ contract MockCToken is MockERC20 {
         return error ? 1 : 0;
     }
 
-    function exchangeRateStored() external view returns (uint) {
+    function exchangeRateStored() external view override returns (uint) {
         return EXCHANGE_RATE_SCALE * effectiveExchangeRate / EXCHANGE_RATE_SCALE; // 2:1
     }
 
-    function exchangeRateCurrent() external returns (uint) {
+    function exchangeRateCurrent() external override returns (uint) {
         // fake state operation to not allow "view" modifier
         effectiveExchangeRate = effectiveExchangeRate;
         
@@ -85,7 +111,55 @@ contract MockCToken is MockERC20 {
         return token.balanceOf(address(this));
     }
 
-    function totalBorrows() external pure returns (uint) {
+    function totalBorrows() external pure override returns (uint) {
         return 0;
+    }
+
+    function totalReserves() external pure override returns (uint) {
+        return 0;
+    }
+
+    function totalFuseFees() external view override returns(uint256) {
+        return 0;
+    }
+
+    function totalAdminFees() external view override returns(uint256) {
+        return 0;
+    }
+
+    function interestRateModel() external view override returns(InterestRateModel) {
+        return irm;
+    }
+
+    function reserveFactorMantissa() external view override returns(uint256) {
+        return 0;
+    }
+
+    function fuseFeeMantissa() external view override returns(uint256) {
+        return 0;
+    }
+
+    function adminFeeMantissa() external view override returns(uint256) {
+        return 0;
+    }
+
+    function initialExchangeRateMantissa() external view override returns(uint256) {
+        return 0;
+    }
+
+    function repayBorrow(uint256) external override returns (uint256) {
+        return 0;
+    }
+
+    function repayBorrowBehalf(address, uint256) external override returns (uint256) {
+        return 0;
+    }
+
+    function borrowBalanceCurrent(address) external override returns (uint256) {
+        return 0;
+    }
+
+    function accrualBlockNumber() external view override returns (uint256) {
+        return block.number;
     }
 }
