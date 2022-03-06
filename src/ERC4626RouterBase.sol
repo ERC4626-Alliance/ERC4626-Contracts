@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.10;
 
 import {IERC4626, IERC4626RouterBase, ERC20} from "./interfaces/IERC4626RouterBase.sol";
