@@ -3,19 +3,22 @@ pragma solidity ^0.8.10;
 import {Hevm} from "./Hevm.sol";
 import {MockERC20} from "./mock/MockERC20.sol";
 import {MockCToken} from "./mock/MockCToken.sol";
-import {CompoundERC4626} from "../vaults/compound/CompoundERC4626.sol";
+import {FuseERC4626} from "../vaults/compound/FuseERC4626.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-contract TestCompoundERC4626 {
+contract TestFuseERC4626 {
+    using FixedPointMathLib for uint256;
+
     MockERC20 private token;
     MockCToken private cToken;
-    CompoundERC4626 private vault;
+    FuseERC4626 private vault;
 
     Hevm public constant vm = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     function setUp() public {
         token = new MockERC20();
         cToken = new MockCToken(address(token), false);
-        vault = new CompoundERC4626(address(cToken), "fTRIBE-8 ERC4626 wrapper", "4626-fTRIBE-8");
+        vault = new FuseERC4626(address(cToken), "fTRIBE-8 ERC4626 wrapper", "4626-fTRIBE-8");
       
         vm.label(address(token), "token");
         vm.label(address(cToken), "cToken");
@@ -33,14 +36,12 @@ contract TestCompoundERC4626 {
         require(address(vault.cTokenUnderlying()) == address(token));
         
         // vault metadata
-        require(vault.asset() == address(token));
+        require(address(vault.asset()) == address(token));
         require(vault.totalAssets() == 0);
 
-        // invariant checks
-        require(vault.totalAssets() == 0);
+        // balance checks
         require(token.balanceOf(address(this)) == 0);
         require(token.balanceOf(address(cToken)) == 0);
-        require(cToken.balanceOf(address(vault)) == 0);
         require(vault.balanceOf(address(this)) == 0);
     }
 
@@ -53,14 +54,13 @@ contract TestCompoundERC4626 {
 
         token.mint(address(this), assets);
         token.approve(address(vault), assets);
+        uint256 expectedShares = vault.previewDeposit(assets);
         uint256 shares = vault.deposit(assets, receiver);
-        uint256 expectedShares = uint256(assets) / 2;
         require(shares == expectedShares);
 
-        require(vault.totalAssets() == assets);
+        require(vault.totalAssets() == assets || vault.totalAssets() == assets - 1);
         require(token.balanceOf(address(this)) == 0);
         require(token.balanceOf(address(cToken)) == assets);
-        require(cToken.balanceOf(address(vault)) == expectedShares);
         require(vault.balanceOf(receiver) == expectedShares);
     }
 
@@ -69,7 +69,7 @@ contract TestCompoundERC4626 {
         token.mint(address(this), 1e18);
         token.approve(address(vault), 1e18);
 
-        vm.expectRevert(bytes("CompoundERC4626: error on cToken.mint"));
+        vm.expectRevert(bytes("MINT_FAILED"));
         vault.deposit(1e18, address(this));
     }
 
@@ -80,16 +80,15 @@ contract TestCompoundERC4626 {
     function testMint1(uint128 shares) public {
         address receiver = address(0x42);
 
-        uint256 expectedAssets = uint256(shares) * 2;
+        uint256 expectedAssets = vault.previewMint(shares);
         token.mint(address(this), expectedAssets);
         token.approve(address(vault), expectedAssets);
         uint256 assets = vault.mint(shares, receiver);
         require(assets == expectedAssets);
 
-        require(vault.totalAssets() == expectedAssets);
+        require(vault.totalAssets() == expectedAssets || vault.totalAssets() == expectedAssets - 1);
         require(token.balanceOf(address(this)) == 0);
         require(token.balanceOf(address(cToken)) == expectedAssets);
-        require(cToken.balanceOf(address(vault)) == shares);
         require(vault.balanceOf(receiver) == shares);
     }
 
@@ -98,7 +97,7 @@ contract TestCompoundERC4626 {
         token.mint(address(this), 1e18);
         token.approve(address(vault), 1e18);
 
-        vm.expectRevert(bytes("CompoundERC4626: error on cToken.mint"));
+        vm.expectRevert(bytes("MINT_FAILED"));
         vault.mint(5e17, address(this));
     }
 
@@ -106,7 +105,8 @@ contract TestCompoundERC4626 {
                 withdraw()
     //////////////////////////////////////////////////////////////*/
 
-    function testWithdraw1(uint128 assets) public {
+    function testWithdraw() public {
+        uint256 assets = 1e18;
         address receiver = address(0x42);
         address owner = address(this);
 
@@ -119,7 +119,6 @@ contract TestCompoundERC4626 {
         require(vault.totalAssets() == 0);
         require(token.balanceOf(receiver) == assets);
         require(token.balanceOf(address(cToken)) == 0);
-        require(cToken.balanceOf(address(vault)) == 0);
         require(vault.balanceOf(owner) == 0);
     }
 
@@ -132,7 +131,7 @@ contract TestCompoundERC4626 {
         vault.deposit(1e18, owner);
         cToken.setError(true);
 
-        vm.expectRevert(bytes("CompoundERC4626: error on cToken.redeemUnderlying"));
+        vm.expectRevert(bytes("REDEEM_FAILED"));
         vault.withdraw(1e18, receiver, owner);
     }
 
@@ -144,7 +143,8 @@ contract TestCompoundERC4626 {
         token.approve(address(vault), 1e18);
         vault.deposit(1e18, owner);
 
-        vm.expectRevert(bytes("CompoundERC4626: spender not authorized"));
+        // panic code 11 Arithmetic over/underflow
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         vm.prank(receiver);
         vault.withdraw(1e18, receiver, owner);
     }
@@ -153,22 +153,20 @@ contract TestCompoundERC4626 {
                 redeem()
     //////////////////////////////////////////////////////////////*/
 
-    function testRedeem1(uint128 shares) public {
+    function testRedeem1() public {
         address receiver = address(0x42);
         address owner = address(this);
 
-        uint256 assets = uint256(shares) * 2;
+        uint256 shares = 1e18;
 
-        token.mint(owner, assets);
-        token.approve(address(vault), assets);
+        token.mint(owner, 1e18);
+        token.approve(address(vault), 1e18);
         uint256 depositAssets = vault.mint(shares, owner);
         uint256 redeemAssets = vault.redeem(shares, receiver, owner);
         require(redeemAssets == depositAssets);
 
         require(vault.totalSupply() == 0);
-        require(token.balanceOf(receiver) == assets);
-        require(token.balanceOf(address(cToken)) == 0);
-        require(cToken.balanceOf(address(vault)) == 0);
+        require(token.balanceOf(receiver) == 1e18);
         require(vault.balanceOf(owner) == 0);
     }
 
@@ -181,7 +179,7 @@ contract TestCompoundERC4626 {
         vault.mint(5e17, owner);
         cToken.setError(true);
 
-        vm.expectRevert(bytes("CompoundERC4626: error on cToken.redeemUnderlying"));
+        vm.expectRevert(bytes("REDEEM_FAILED"));
         vault.redeem(5e17, receiver, owner);
     }
 
@@ -193,7 +191,8 @@ contract TestCompoundERC4626 {
         token.approve(address(vault), 1e18);
         vault.mint(5e17, owner);
 
-        vm.expectRevert(bytes("CompoundERC4626: spender not authorized"));
+        // panic code 11 Arithmetic over/underflow
+        vm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 0x11));
         vm.prank(receiver);
         vault.redeem(5e17, receiver, owner);
     }
@@ -202,16 +201,56 @@ contract TestCompoundERC4626 {
                 vault accounting viewers
     //////////////////////////////////////////////////////////////*/
 
-    function testConvertToShares(uint128 assets) public view {
-        uint256 expected = uint256(assets) / 2;
+    function testConvertToShares() public {
+        uint256 assets = 1e18;
+        uint256 expectedShares = assets; // 1:1 initially
         uint256 actual = vault.convertToShares(assets);
-        require(actual == expected);
+        require(actual == expectedShares);
+
+        // first user enter the vault, ratio is 1:1
+        token.mint(address(this), assets);
+        token.approve(address(vault), assets);
+        vault.deposit(assets, address(this));
+        expectedShares = assets;
+        actual = vault.convertToShares(assets);
+        require(actual == expectedShares);
+
+        // donate some cTokens to the vault
+        token.mint(address(this), assets);
+        token.approve(address(cToken), assets);
+        cToken.mint(assets); // get some cTokens on the test contract
+        cToken.transfer(address(vault), cToken.balanceOf(address(this))); // send cTokens to the vault
+        
+        // vault shares should now be worth 2 assets
+        expectedShares = assets / 2; // 1:2
+        actual = vault.convertToShares(assets);
+        require(actual == expectedShares);
     }
     
-    function testConvertToAssets(uint128 shares) public view {
-        uint256 expected = uint256(shares) * 2;
+    function testConvertToAssets() public {
+        uint256 shares = 1e18;
+        uint256 expectedAssets = shares; // 1:1 initially
         uint256 actual = vault.convertToAssets(shares);
-        require(actual == expected);
+        require(actual == expectedAssets);
+
+        // first user enter the vault, ratio is 1:1
+        token.mint(address(this), shares);
+        token.approve(address(vault), shares);
+        vault.deposit(shares, address(this));
+        expectedAssets = shares;
+        actual = vault.convertToAssets(shares);
+        require(actual == expectedAssets);
+
+        // donate some cTokens to the vault
+        token.mint(address(this), shares);
+        token.approve(address(cToken), shares);
+        cToken.mint(shares); // get some cTokens on the test contract
+        cToken.transfer(address(vault), cToken.balanceOf(address(this))); // send cTokens to the vault
+        
+        // vault shares should now be worth 2 assets
+        expectedAssets = shares * 2; // 1:2
+        actual = vault.convertToAssets(shares);
+        require(actual == expectedAssets);
     }
     
     function testMaxDeposit() public view {
@@ -221,8 +260,8 @@ contract TestCompoundERC4626 {
         require(actual == expected);
     }
     
-    function testPreviewDeposit(uint128 assets) public {
-        uint256 expected = uint256(assets) / 2;
+    function testPreviewDeposit(uint128 assets) public view {
+        uint256 expected = uint256(assets); // 1:1 initially
         uint256 actual = vault.previewDeposit(assets);
         require(actual == expected);
     }
@@ -234,8 +273,8 @@ contract TestCompoundERC4626 {
         require(actual == expected);
     }
     
-    function testPreviewMint(uint128 shares) public {
-        uint256 expected = uint256(shares) * 2;
+    function testPreviewMint(uint128 shares) public view {
+        uint256 expected = uint256(shares); // 1:1 initially
         uint256 actual = vault.previewMint(shares);
         require(actual == expected);
     }
@@ -251,8 +290,8 @@ contract TestCompoundERC4626 {
         require(vault.maxWithdraw(owner) == 1e18);
     }
     
-    function testPreviewWithdraw(uint128 assets) public {
-        uint256 expected = assets / 2;
+    function testPreviewWithdraw(uint128 assets) public view {
+        uint256 expected = assets; // 1:1 initially
         uint256 actual = vault.previewWithdraw(assets);
         require(actual == expected);
     }
@@ -268,86 +307,9 @@ contract TestCompoundERC4626 {
         require(vault.maxRedeem(owner) == 1e17);
     }
     
-    function testPreviewRedeem(uint128 shares) public {
-        uint256 expected = uint256(shares) * 2;
+    function testPreviewRedeem(uint128 shares) public view {
+        uint256 expected = uint256(shares); // 1:1 initially
         uint256 actual = vault.previewRedeem(shares);
         require(actual == expected);
-    }
-
-    function testPreviewMintCoherence(uint128 _shares) public {
-        uint256 shares = uint256(_shares) + 1; // don't want to fuzz zero
-
-        // set a "random" cToken change rate, that allows to test
-        // for rounding errors
-        cToken.setEffectiveExchangeRate(1234567891011121311);
-
-        uint256 previewAssets = vault.previewMint(shares);
-        token.mint(address(this), previewAssets);
-        token.approve(address(vault), previewAssets);
-        uint256 balanceBefore = token.balanceOf(address(this));
-        uint256 returnedAssets = vault.mint(shares, address(this));
-        uint256 spentAssets = balanceBefore - token.balanceOf(address(this));
-
-        require(previewAssets == spentAssets);
-        require(returnedAssets == spentAssets);
-    }
-
-    function testPreviewDepositCoherence(uint128 _assets) public {
-        uint256 assets = uint256(_assets) + 1; // don't want to fuzz zero
-
-        // set a "random" cToken change rate, that allows to test
-        // for rounding errors
-        cToken.setEffectiveExchangeRate(1234567891011121311);
-
-        uint256 previewShares = vault.previewDeposit(assets);
-        token.mint(address(this), assets);
-        token.approve(address(vault), assets);
-        uint256 balanceBefore = vault.balanceOf(address(this));
-        uint256 returnedShares = vault.deposit(assets, address(this));
-        uint256 receivedShares = vault.balanceOf(address(this)) - balanceBefore;
-
-        require(previewShares == receivedShares);
-        require(returnedShares == receivedShares);
-    }
-
-    function testPreviewRedeemCoherence(uint128 _shares) public {
-        uint256 shares = uint256(_shares) + 1; // don't want to fuzz zero
-
-        // set a "random" cToken change rate, that allows to test
-        // for rounding errors
-        cToken.setEffectiveExchangeRate(1234567891011121311);
-
-        token.mint(address(this), type(uint256).max);
-        token.approve(address(vault), type(uint256).max);
-        vault.mint(shares, address(this));
-        require(vault.balanceOf(address(this)) == shares);
-
-        uint256 previewAssets = vault.previewRedeem(shares);
-        uint256 balanceBefore = token.balanceOf(address(this));
-        uint256 returnedAssets = vault.redeem(shares, address(this), address(this));
-        uint256 receivedAssets = token.balanceOf(address(this)) - balanceBefore;
-
-        require(previewAssets == receivedAssets);
-        require(returnedAssets == receivedAssets);
-    }
-
-    function testPreviewWithdrawCoherence(uint128 _assets) public {
-        uint256 assets = uint256(_assets) + 1; // don't want to fuzz zero
-
-        // set a "random" cToken change rate, that allows to test
-        // for rounding errors
-        cToken.setEffectiveExchangeRate(1234567891011121311);
-
-        token.mint(address(this), assets);
-        token.approve(address(vault), assets);
-        vault.deposit(assets, address(this));
-
-        uint256 previewShares = vault.previewWithdraw(assets);
-        uint256 balanceBefore = vault.balanceOf(address(this));
-        uint256 returnedShares = vault.withdraw(assets, address(this), address(this));
-        uint256 spentShares = balanceBefore - vault.balanceOf(address(this));
-
-        require(previewShares == spentShares);
-        require(returnedShares == spentShares);
     }
 }
