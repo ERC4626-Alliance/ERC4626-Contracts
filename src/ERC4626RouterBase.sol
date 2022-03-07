@@ -21,7 +21,7 @@ abstract contract ERC4626RouterBase is IERC4626RouterBase, SelfPermit, Multicall
         uint256 maxAmountIn
     ) public payable virtual override returns (uint256 amountIn) {
         if ((amountIn = vault.mint(shares, to)) > maxAmountIn) {
-            revert MinAmountError();
+            revert MaxAmountError();
         }
     }
 
@@ -33,7 +33,7 @@ abstract contract ERC4626RouterBase is IERC4626RouterBase, SelfPermit, Multicall
         uint256 minSharesOut
     ) public payable virtual override returns (uint256 sharesOut) {
         if ((sharesOut = vault.deposit(amount, to)) < minSharesOut) {
-            revert MinAmountError();
+            revert MinSharesError();
         }
     }
 
@@ -42,10 +42,10 @@ abstract contract ERC4626RouterBase is IERC4626RouterBase, SelfPermit, Multicall
         IERC4626 vault,
         address to,
         uint256 amount,
-        uint256 minSharesOut
+        uint256 maxSharesOut
     ) public payable virtual override returns (uint256 sharesOut) {
-        if ((sharesOut = vault.withdraw(amount, to, msg.sender)) < minSharesOut) {
-            revert MinAmountError();
+        if ((sharesOut = vault.withdraw(amount, to, msg.sender)) > maxSharesOut) {
+            revert MaxSharesError();
         }
     }
 
