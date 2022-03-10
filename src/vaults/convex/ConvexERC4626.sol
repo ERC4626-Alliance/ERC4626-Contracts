@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.10;
 
 import {ERC20, ERC4626} from "solmate/mixins/ERC4626.sol";
