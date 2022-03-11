@@ -49,7 +49,8 @@ contract TestFuseERC4626 {
                 deposit()
     //////////////////////////////////////////////////////////////*/
 
-    function testDeposit1(uint128 assets) public {
+    function testDeposit1(uint128 _assets) public {
+        uint256 assets = uint256(_assets) + 1; // don't fuzz with 0
         address receiver = address(0x42);
 
         token.mint(address(this), assets);
@@ -77,7 +78,8 @@ contract TestFuseERC4626 {
                 mint()
     //////////////////////////////////////////////////////////////*/
 
-    function testMint1(uint128 shares) public {
+    function testMint1(uint128 _shares) public {
+        uint256 shares = uint256(_shares) + 1; // don't fuzz with 0
         address receiver = address(0x42);
 
         uint256 expectedAssets = vault.previewMint(shares);
