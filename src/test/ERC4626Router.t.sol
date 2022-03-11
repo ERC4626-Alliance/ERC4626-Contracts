@@ -7,9 +7,9 @@ import {WETH} from "solmate/tokens/WETH.sol";
 import {IERC4626Router, ERC4626Router} from "../ERC4626Router.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "../ERC4626RouterBase.sol";
 
-import {Hevm} from "./Hevm.sol";
+import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
-contract ERC4626Test {
+contract ERC4626Test is DSTestPlus {
 
     MockERC20 underlying;
     IERC4626 vault;
@@ -21,8 +21,6 @@ contract ERC4626Test {
     bytes32 public PERMIT_TYPEHASH = keccak256(
                                 "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
                             );
-
-    Hevm VM = Hevm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
 
     receive() external payable {}
     
@@ -95,11 +93,11 @@ contract ERC4626Test {
 
     function testDepositWithPermit() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.mint(owner, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -114,7 +112,7 @@ contract ERC4626Test {
 
         router.approve(underlying, address(vault), 1e18);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.depositToVault(vault, owner, 1e18, 1e18);
 
         require(vault.balanceOf(owner) == 1e18);
@@ -123,11 +121,11 @@ contract ERC4626Test {
 
     function testDepositWithPermitViaMulticall() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.mint(owner, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -143,7 +141,7 @@ contract ERC4626Test {
         data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, underlying, address(vault), 1e18);
         data[2] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, 1e18, 1e18);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.multicall(data);
 
         require(vault.balanceOf(owner) == 1e18);
@@ -169,11 +167,8 @@ contract ERC4626Test {
 
         router.approve(underlying, address(vault), 1e18);
 
-        try router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
-            revert("fail");
-        } catch {
-            // success
-        }
+        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
+        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18);
     }
 
     function testWithdrawToDeposit() public {
@@ -189,7 +184,7 @@ contract ERC4626Test {
 
         vault.approve(address(router), type(uint).max);
 
-        router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18);
+        router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18, 1e18);
 
         require(toVault.balanceOf(address(this)) == 1e18);
         require(vault.balanceOf(address(this)) == 0);
@@ -208,11 +203,8 @@ contract ERC4626Test {
 
         vault.approve(address(router), type(uint).max);
 
-        try router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1.1e18) {
-            revert("fail");
-        } catch {
-            // success
-        }
+        hevm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 17));
+        router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18, 1.1e18);
     }
 
     function testRedeemTo() public {
@@ -247,11 +239,8 @@ contract ERC4626Test {
 
         vault.approve(address(router), type(uint).max);
 
-        try router.redeemToDeposit(vault, toVault, address(this), 1e18, 1.1e18) {
-            revert("fail");
-        } catch {
-            // success
-        }
+        hevm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 17));
+        router.redeemToDeposit(vault, toVault, address(this), 1e18, 1.1e18);
     }
 
     function testWithdraw() public {
@@ -271,7 +260,7 @@ contract ERC4626Test {
 
     function testWithdrawWithPermit() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
 
@@ -279,7 +268,7 @@ contract ERC4626Test {
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -292,7 +281,7 @@ contract ERC4626Test {
 
         vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.withdraw(vault, owner, 1e18, 1e18);
 
         require(vault.balanceOf(owner) == 0);
@@ -301,7 +290,7 @@ contract ERC4626Test {
 
     function testWithdrawWithPermitViaMulticall() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
 
@@ -309,7 +298,7 @@ contract ERC4626Test {
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -324,7 +313,7 @@ contract ERC4626Test {
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
         data[1] = abi.encodeWithSelector(IERC4626RouterBase.withdraw.selector, vault, owner, 1e18, 1e18);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.multicall(data);
 
         require(vault.balanceOf(owner) == 0);
@@ -373,7 +362,7 @@ contract ERC4626Test {
 
     function testRedeemWithPermit() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
 
@@ -381,7 +370,7 @@ contract ERC4626Test {
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -394,7 +383,7 @@ contract ERC4626Test {
 
         vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.redeem(vault, owner, 1e18, 1e18);
 
         require(vault.balanceOf(owner) == 0);
@@ -403,7 +392,7 @@ contract ERC4626Test {
 
     function testRedeemWithPermitViaMulticall() public {
         uint256 privateKey = 0xBEEF;
-        address owner = VM.addr(privateKey);
+        address owner = hevm.addr(privateKey);
 
         underlying.approve(address(router), 1e18);
 
@@ -411,7 +400,7 @@ contract ERC4626Test {
 
         router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
 
-        (uint8 v, bytes32 r, bytes32 s) = VM.sign(
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
             keccak256(
                 abi.encodePacked(
@@ -426,7 +415,7 @@ contract ERC4626Test {
         data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
         data[1] = abi.encodeWithSelector(IERC4626RouterBase.redeem.selector, vault, owner, 1e18, 1e18);
 
-        VM.prank(owner);
+        hevm.prank(owner);
         router.multicall(data);
 
         require(vault.balanceOf(owner) == 0);
@@ -441,11 +430,9 @@ contract ERC4626Test {
         router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
 
         vault.approve(address(router), 1e18);
-        try router.redeem(IERC4626(address(vault)), address(this), 1e18, 1.1e18) {
-            revert("fail");
-        } catch {
-            // success
-        }
+
+        hevm.expectRevert(abi.encodeWithSignature("MinAmountError()"));
+        router.redeem(IERC4626(address(vault)), address(this), 1e18, 1.1e18);
     }
 
     function testDepositETHToWETHVault() public {
