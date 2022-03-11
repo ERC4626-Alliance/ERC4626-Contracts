@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {MockERC20} from "./MockERC20.sol";
-import {CERC20} from "libcompound/interfaces/CERC20.sol";
+import {CToken} from "../../external/fuse/CToken.sol";
 import {InterestRateModel} from "libcompound/interfaces/InterestRateModel.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
@@ -25,12 +25,25 @@ contract MockInterestRateModel is InterestRateModel {
     }
 }
 
-contract MockCToken is MockERC20, CERC20 {
+contract MockUnitroller {
+    function supplyCaps(address cToken) external view returns(uint256) {
+        return 100e18;
+    }
+    function mintGuardianPaused(address cToken) external view returns(bool) {
+        return false;
+    }
+    function borrowGuardianPaused(address cToken) external view returns(bool) {
+        return false;
+    }
+}
+
+contract MockCToken is MockERC20, CToken {
 
     MockERC20 public token;
     bool public error;
     bool public isCEther;
     InterestRateModel public irm;
+    address public override comptroller;
 
     uint256 private constant EXCHANGE_RATE_SCALE = 1e18;
     uint256 public effectiveExchangeRate = 2e18;
@@ -39,6 +52,7 @@ contract MockCToken is MockERC20, CERC20 {
         token = MockERC20(_token);
         isCEther = _isCEther;
         irm = new MockInterestRateModel();
+        comptroller = address(new MockUnitroller());
     }
 
     function setError(bool _error) external {
@@ -107,7 +121,7 @@ contract MockCToken is MockERC20, CERC20 {
         return EXCHANGE_RATE_SCALE * effectiveExchangeRate / EXCHANGE_RATE_SCALE; // 2:1
     }
 
-    function getCash() external view returns (uint) {
+    function getCash() external view override returns (uint) {
         return token.balanceOf(address(this));
     }
 

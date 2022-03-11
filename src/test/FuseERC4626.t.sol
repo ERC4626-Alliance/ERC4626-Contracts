@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 import {Hevm} from "./Hevm.sol";
 import {MockERC20} from "./mock/MockERC20.sol";
 import {MockCToken} from "./mock/MockCToken.sol";
-import {FuseERC4626} from "../vaults/compound/FuseERC4626.sol";
+import {FuseERC4626} from "../vaults/fuse/FuseERC4626.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract TestFuseERC4626 {
@@ -255,7 +255,7 @@ contract TestFuseERC4626 {
     
     function testMaxDeposit() public view {
         address owner = address(0x42);
-        uint256 expected = type(uint256).max;
+        uint256 expected = 100e18;
         uint256 actual = vault.maxDeposit(owner);
         require(actual == expected);
     }
@@ -268,7 +268,7 @@ contract TestFuseERC4626 {
     
     function testMaxMint() public view {
         address owner = address(0x42);
-        uint256 expected = type(uint256).max;
+        uint256 expected = 100e18;
         uint256 actual = vault.maxMint(owner);
         require(actual == expected);
     }
