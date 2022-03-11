@@ -3,134 +3,117 @@ pragma solidity 0.8.10;
 
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
+/// @title ERC4626 interface
+/// @author Fei Protocol
+/// See: https://eips.ethereum.org/EIPS/eip-4626
 abstract contract IERC4626 is ERC20 {
-    /*///////////////////////////////////////////////////////////////
-                                Events
-    //////////////////////////////////////////////////////////////*/
 
-    event Deposit(address indexed from, address indexed to, uint256 value);
+    /*////////////////////////////////////////////////////////
+                      Events
+    ////////////////////////////////////////////////////////*/
 
-    event Withdraw(address indexed from, address indexed to, uint256 value);
+    /// @notice `sender` has exchanged `assets` for `shares`,
+    /// and transferred those `shares` to `receiver`.
+    event Deposit(
+        address indexed sender,
+        address indexed receiver,
+        uint256 assets,
+        uint256 shares
+    );
 
-    /*///////////////////////////////////////////////////////////////
-                            Mutable Functions
-    //////////////////////////////////////////////////////////////*/
+    /// @notice `sender` has exchanged `shares` for `assets`,
+    /// and transferred those `assets` to `receiver`.
+    event Withdraw(
+        address indexed sender,
+        address indexed receiver,
+        uint256 assets,
+        uint256 shares
+    );
 
-    /**
-      @notice Deposit a specific amount of assets.
-      @param amount The amount of the assets to deposit.
-      @param to The address to receive shares corresponding to the deposit
-      @return shares The shares in the vault credited to `to`
-    */
-    function deposit(uint256 amount, address to) public virtual returns (uint256 shares);
+    /*////////////////////////////////////////////////////////
+                      Vault properties
+    ////////////////////////////////////////////////////////*/
 
-    /**
-      @notice Mint an exact amount of shares for a variable amount of assets.
-      @param shares The amount of vault shares to mint.
-      @param to The address to receive shares corresponding to the mint.
-      @return amount The amount of the assets deposited from the mint call.
-    */
-    function mint(uint256 shares, address to) public virtual returns (uint256 amount);
+    /// @notice The address of the underlying ERC20 token used for
+    /// the Vault for accounting, depositing, and withdrawing.
+    function asset() external view virtual returns(address asset);
 
-    /**
-      @notice Withdraw a specific amount of assets.
-      @param amount The amount of the assets to withdraw.
-      @param to The address to receive assets corresponding to the withdrawal.
-      @param from The address to burn shares from corresponding to the withdrawal.
-      @return shares The shares in the vault burned from sender
-    */
-    function withdraw(uint256 amount, address to, address from) public virtual returns (uint256 shares);
+    /// @notice Total amount of the underlying asset that
+    /// is "managed" by Vault.
+    function totalAssets() external view virtual returns(uint256 totalAssets);
 
-    /**
-      @notice Redeem a specific amount of shares for assets.
-      @param from The address to burn shares from corresponding to the redemption.
-      @param to The address to receive assets corresponding to the redemption.
-      @param shares The amount of shares to redeem.
-      @return amount The asset amount transferred to `to`.
-    */
-    function redeem(uint256 shares, address to, address from) public virtual returns (uint256 amount);
+    /*////////////////////////////////////////////////////////
+                      Deposit/Withdrawal Logic
+    ////////////////////////////////////////////////////////*/
 
-    /*///////////////////////////////////////////////////////////////
-                            View Functions
-    //////////////////////////////////////////////////////////////*/
+    /// @notice Mints `shares` Vault shares to `receiver` by
+    /// depositing exactly `assets` of underlying tokens.
+    function deposit(uint256 assets, address receiver) external virtual returns(uint256 shares);
 
-    /** 
-      @notice The underlying asset the Vault accepts.
-      @return the ERC20 implementation address.
-    */
-    function asset() public view virtual returns (ERC20);
+    /// @notice Mints exactly `shares` Vault shares to `receiver`
+    /// by depositing `assets` of underlying tokens.
+    function mint(uint256 shares, address receiver) external virtual returns(uint256 assets);
 
-    /** 
-      @notice Returns a user's Vault balance in assets.
-      @param user The user to get the asset balance of.
-      @return amount The user's Vault balance in assets.
-    */
-    function assetsOf(address user) public view virtual returns (uint256 amount);
+    /// @notice Redeems `shares` from `owner` and sends `assets`
+    /// of underlying tokens to `receiver`.
+    function withdraw(uint256 assets, address receiver, address owner) external virtual returns(uint256 shares);
 
-    /** 
-      @notice Calculates the total amount of assets the Vault manages.
-      @return The total amount of assets the Vault manages.
-    */
-    function totalAssets() public view virtual returns (uint256);
+    /// @notice Redeems `shares` from `owner` and sends `assets`
+    /// of underlying tokens to `receiver`.
+    function redeem(uint256 shares, address receiver, address owner) external virtual returns(uint256 assets);
 
-    /** 
-      @notice Returns the value in assets of one vault share. 
-     */
-    function exchangeRate() public view virtual returns (uint256);
+    /*////////////////////////////////////////////////////////
+                      Vault Accounting Logic
+    ////////////////////////////////////////////////////////*/
 
-    /**
-      @notice Returns the amount of vault tokens that would be obtained if depositing a given amount of underlying tokens in a `deposit` call.
-      @param amount the input amount of assets
-      @return shares the corresponding amount of shares out from a deposit call with `amount` in
-     */
-    function previewDeposit(uint256 amount) public view virtual returns (uint256 shares);
+    /// @notice The amount of shares that the vault would
+    /// exchange for the amount of assets provided, in an
+    /// ideal scenario where all the conditions are met.
+    function convertToShares(uint256 assets) external view virtual returns(uint256 shares);
 
-    /**
-      @notice Returns the amount of assets that would be deposited if minting a given amount of shares in a `mint` call.
-      @param shares the amount of shares from a mint call.
-      @return amount the amount of assets corresponding to the mint call
-     */
-    function previewMint(uint256 shares) public view virtual returns (uint256 amount);
+    /// @notice The amount of assets that the vault would
+    /// exchange for the amount of shares provided, in an
+    /// ideal scenario where all the conditions are met.
+    function convertToAssets(uint256 shares) external view virtual returns(uint256 assets);
 
-    /**
-      @notice Returns the amount of vault tokens that would be burned if withdrawing a given amount of underlying tokens in a `withdraw` call.
-      @param amount the input amount of assets
-      @return shares the corresponding amount of shares out from a withdraw call with `amount` in
-     */
-    function previewWithdraw(uint256 amount) public view virtual returns (uint256 shares);
+    /// @notice Total number of underlying assets that can
+    /// be deposited by `owner` into the Vault, where `owner`
+    /// corresponds to the input parameter `receiver` of a
+    /// `deposit` call.
+    function maxDeposit(address owner) external view virtual returns(uint256 maxAssets);
 
-    /**
-      @notice Returns the amount of assets that would be obtained if redeeming a given amount of shares in a `redeem` call.
-      @param shares the amount of shares from a redeem call.
-      @return amount the amount of assets corresponding to the redeem call
-     */
-    function previewRedeem(uint256 shares) public view virtual returns (uint256 amount);
+    /// @notice Allows an on-chain or off-chain user to simulate
+    /// the effects of their deposit at the current block, given
+    /// current on-chain conditions.
+    function previewDeposit(uint256 assets) external view virtual returns(uint256 shares);
 
-    /**
-      @notice Returns the max deposit amount for a recipient
-      @param to the deposit recipient
-      @return amount the max input amount of assets for deposit for a user
-    */
-    function maxDeposit(address to) public view virtual returns (uint256 amount);
+    /// @notice Total number of underlying shares that can be minted
+    /// for `owner`, where `owner` corresponds to the input
+    /// parameter `receiver` of a `mint` call.
+    function maxMint(address owner) external view virtual returns(uint256 maxShares);
 
-    /**
-      @notice Returns the max mint shares for a recipient
-      @param to the mint recipient
-      @return shares the max shares for mint for a user
-    */
-    function maxMint(address to) public view virtual returns (uint256 shares);
+    /// @notice Allows an on-chain or off-chain user to simulate
+    /// the effects of their mint at the current block, given
+    /// current on-chain conditions.
+    function previewMint(uint256 shares) external view virtual returns(uint256 assets);
 
-    /**
-      @notice Returns the max withdraw amount for a user
-      @param from the withdraw source
-      @return amount the max amount of assets out for withdraw for a user
-    */
-    function maxWithdraw(address from) public view virtual returns (uint256 amount);
+    /// @notice Total number of underlying assets that can be
+    /// withdrawn from the Vault by `owner`, where `owner`
+    /// corresponds to the input parameter of a `withdraw` call.
+    function maxWithdraw(address owner) external view virtual returns(uint256 maxAssets);
 
-    /**
-      @notice Returns the max redeem shares for a user
-      @param from the redeem source
-      @return shares the max shares out for redeem for a user
-    */
-    function maxRedeem(address from) public view virtual returns (uint256 shares);
+    /// @notice Allows an on-chain or off-chain user to simulate
+    /// the effects of their withdrawal at the current block,
+    /// given current on-chain conditions.
+    function previewWithdraw(uint256 assets) external view virtual returns(uint256 shares);
+
+    /// @notice Total number of underlying shares that can be
+    /// redeemed from the Vault by `owner`, where `owner` corresponds
+    /// to the input parameter of a `redeem` call.
+    function maxRedeem(address owner) external view virtual returns(uint256 maxShares);
+
+    /// @notice Allows an on-chain or off-chain user to simulate
+    /// the effects of their redeemption at the current block,
+    /// given current on-chain conditions.
+    function previewRedeem(uint256 shares) external view virtual returns(uint256 assets);
 }
