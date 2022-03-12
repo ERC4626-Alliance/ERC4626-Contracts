@@ -1,7 +1,7 @@
 pragma solidity 0.8.10;
 
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {MockERC4626} from "./mock/MockERC4626.sol";
+import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WETH} from "solmate/tokens/WETH.sol";
 
 import {IERC4626Router, ERC4626Router} from "../ERC4626Router.sol";
@@ -27,12 +27,12 @@ contract ERC4626Test is DSTestPlus {
     function setUp() public {
         underlying = new MockERC20("Mock Token", "TKN", 18);
 
-        vault = IERC4626(address(new MockERC4626(underlying)));
-        toVault = IERC4626(address(new MockERC4626(underlying)));
+        vault = IERC4626(address(new MockERC4626(underlying, "Mock ERC4626", "mTKN")));
+        toVault = IERC4626(address(new MockERC4626(underlying, "Mock ERC4626", "mTKN")));
 
         weth = IWETH9(address(new WETH()));
 
-        wethVault = IERC4626(address(new MockERC4626(weth)));
+        wethVault = IERC4626(address(new MockERC4626(weth, "Mock ERC4626", "mTKN")));
 
         router = new ERC4626Router("", weth); // empty reverse ens
 
@@ -195,6 +195,7 @@ contract ERC4626Test is DSTestPlus {
         underlying.approve(address(router), type(uint).max);
 
         router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(toVault), 1e18);
 
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
@@ -203,7 +204,7 @@ contract ERC4626Test is DSTestPlus {
 
         vault.approve(address(router), type(uint).max);
 
-        hevm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 17));
+        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
         router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18, 1.1e18);
     }
 
@@ -231,6 +232,7 @@ contract ERC4626Test is DSTestPlus {
         underlying.approve(address(router), type(uint).max);
 
         router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(toVault), 1e18);
 
         router.depositToVault(vault, address(this), 1e18, 1e18);
 
@@ -239,7 +241,7 @@ contract ERC4626Test is DSTestPlus {
 
         vault.approve(address(router), type(uint).max);
 
-        hevm.expectRevert(abi.encodeWithSignature("Panic(uint256)", 17));
+        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
         router.redeemToDeposit(vault, toVault, address(this), 1e18, 1.1e18);
     }
 
