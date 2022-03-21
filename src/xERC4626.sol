@@ -8,7 +8,6 @@ import "solmate/utils/SafeCastLib.sol";
 
 /** 
  @title  An xERC4626 Single Staking Contract
- @author Tribe DAO
  @notice This contract allows users to autocompound rewards denominated in an underlying reward token. 
          It is fully compatible with ERC4626 allowing for DeFi composability.
          It maintains balances using internal accounting to prevent instantaneous changes in the exchange rate.

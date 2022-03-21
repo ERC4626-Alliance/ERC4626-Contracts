@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
-import {MockxERC4626} from "../mocks/MockxERC4626.sol";
+import {MockxERC4626} from "./mocks/MockxERC4626.sol";
 
 contract xERC4626Test is DSTestPlus {
     MockxERC4626 xToken;

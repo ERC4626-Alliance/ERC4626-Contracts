@@ -12,7 +12,6 @@ interface IReverseRegistrar {
 
 /**
  @title helper contract to set reverse ens record 
- @author joeysantoro
  @notice sets reverse ENS record against canonical ReverseRegistrar https://docs.ens.domains/contract-api-reference/reverseregistrar.
 */
 abstract contract ENSReverseRecord {

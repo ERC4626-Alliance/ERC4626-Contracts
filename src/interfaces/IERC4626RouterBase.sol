@@ -5,7 +5,6 @@ import "./IERC4626.sol";
 
 /** 
  @title ERC4626Router Base Interface
- @author joeysantoro
  @notice A canonical router between ERC4626 Vaults https://eips.ethereum.org/EIPS/eip-4626
 
  The base router is a multicall style router inspired by Uniswap v3 with built-in features for permit, WETH9 wrap/unwrap, and ERC20 token pulling/sweeping/approving.

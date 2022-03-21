@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {ERC20, xERC4626, ERC4626} from "../../vaults/xERC4626.sol";
+import {ERC20, xERC4626, ERC4626} from "../../xERC4626.sol";
 
 contract MockxERC4626 is xERC4626 {
     constructor(
