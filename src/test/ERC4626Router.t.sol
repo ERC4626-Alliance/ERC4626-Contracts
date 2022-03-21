@@ -9,6 +9,10 @@ import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, Per
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
+interface Assume {
+    function assume(bool) external;
+}
+
 contract ERC4626Test is DSTestPlus {
 
     MockERC20 underlying;
@@ -35,67 +39,75 @@ contract ERC4626Test is DSTestPlus {
         wethVault = IERC4626(address(new MockERC4626(weth, "Mock ERC4626", "mTKN")));
 
         router = new ERC4626Router("", weth); // empty reverse ens
-
-        underlying.mint(address(this), 1e18);
     }
 
-    function testMint() public {
-        underlying.approve(address(router), 1e18);
+    function testMint(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
 
-        router.approve(underlying, address(vault), 1e18);
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
     
-        router.pullToken(underlying, 1e18, address(router));
+        router.pullToken(underlying, amount, address(router));
 
-        router.mint(IERC4626(address(vault)), address(this), 1e18, 1e18);
+        router.mint(IERC4626(address(vault)), address(this), amount, amount);
 
-        require(vault.balanceOf(address(this)) == 1e18);
+        require(vault.balanceOf(address(this)) == amount);
         require(underlying.balanceOf(address(this)) == 0);
     }
 
-    function testDeposit() public {
+    function testDeposit(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
 
-        underlying.approve(address(router), 1e18);
+        underlying.approve(address(router), amount);
 
-        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(vault), amount);
     
-        router.pullToken(underlying, 1e18, address(router));
+        router.pullToken(underlying, amount, address(router));
 
-        router.deposit(IERC4626(address(vault)), address(this), 1e18, 1e18);
+        router.deposit(IERC4626(address(vault)), address(this), amount, amount);
 
-        require(vault.balanceOf(address(this)) == 1e18);
+        require(vault.balanceOf(address(this)) == amount);
         require(underlying.balanceOf(address(this)) == 0);
     }
 
-    function testDepositMax() public {
-        underlying.mint(address(this), 2e18);
+    function testDepositMax(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
 
-        underlying.approve(address(router), 3e18);
+        underlying.approve(address(router), amount);
 
-        router.approve(underlying, address(vault), 3e18);
+        router.approve(underlying, address(vault), amount);
     
-        router.depositMax(IERC4626(address(vault)), address(this), 3e18);
+        router.depositMax(IERC4626(address(vault)), address(this), amount);
 
-        require(vault.balanceOf(address(this)) == 3e18);
+        require(vault.balanceOf(address(this)) == amount);
         require(underlying.balanceOf(address(this)) == 0);
     }
     
-    function testDepositToVault() public {
+    function testDepositToVault(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
 
-        underlying.approve(address(router), 1e18);
+        underlying.approve(address(router), amount);
 
-        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(vault), amount);
 
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
 
-        require(vault.balanceOf(address(this)) == 1e18);
+        require(vault.balanceOf(address(this)) == amount);
         require(underlying.balanceOf(address(this)) == 0);
     }
 
-    function testDepositWithPermit() public {
+    function testDepositWithPermit(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+
         uint256 privateKey = 0xBEEF;
         address owner = hevm.addr(privateKey);
 
-        underlying.mint(owner, 1e18);
+        underlying.mint(owner, amount);
 
         (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
@@ -103,27 +115,29 @@ contract ERC4626Test is DSTestPlus {
                 abi.encodePacked(
                     "\x19\x01",
                     underlying.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
                 )
             )
         );
 
-        underlying.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
+        underlying.permit(owner, address(router), amount, block.timestamp, v, r, s);
 
-        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(vault), amount);
 
         hevm.prank(owner);
-        router.depositToVault(vault, owner, 1e18, 1e18);
+        router.depositToVault(vault, owner, amount, amount);
 
-        require(vault.balanceOf(owner) == 1e18);
+        require(vault.balanceOf(owner) == amount);
         require(underlying.balanceOf(owner) == 0);
     }
 
-    function testDepositWithPermitViaMulticall() public {
+    function testDepositWithPermitViaMulticall(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+
         uint256 privateKey = 0xBEEF;
         address owner = hevm.addr(privateKey);
 
-        underlying.mint(owner, 1e18);
+        underlying.mint(owner, amount);
 
         (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
             privateKey,
@@ -131,342 +145,389 @@ contract ERC4626Test is DSTestPlus {
                 abi.encodePacked(
                     "\x19\x01",
                     underlying.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
                 )
             )
         );
 
         bytes[] memory data = new bytes[](3);
-        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, underlying, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, underlying, address(vault), 1e18);
-        data[2] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, 1e18, 1e18);
+        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, underlying, amount, block.timestamp, v, r, s);
+        data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, underlying, address(vault), amount);
+        data[2] = abi.encodeWithSelector(IERC4626Router.depositToVault.selector, vault, owner, amount, amount);
 
         hevm.prank(owner);
         router.multicall(data);
 
-        require(vault.balanceOf(owner) == 1e18);
+        require(vault.balanceOf(owner) == amount);
         require(underlying.balanceOf(owner) == 0);
     }
 
-    function testDepositTo() public {
+    function testDepositTo(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
         address to = address(1);
 
-        underlying.approve(address(router), 1e18);
+        underlying.approve(address(router), amount);
 
-        router.approve(underlying, address(vault), 1e18);
+        router.approve(underlying, address(vault), amount);
 
-        router.depositToVault(IERC4626(address(vault)), to, 1e18, 1e18);
+        router.depositToVault(IERC4626(address(vault)), to, amount, amount);
 
         require(vault.balanceOf(address(this)) == 0);
-        require(vault.balanceOf(to) == 1e18);
+        require(vault.balanceOf(to) == amount);
         require(underlying.balanceOf(address(this)) == 0);
     }
 
-    function testDepositBelowMinOutReverts() public {
-        underlying.approve(address(router), 1e18);
+    function testDepositBelowMinOutReverts(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount != type(uint256).max);
+        underlying.mint(address(this), amount);
 
-        router.approve(underlying, address(vault), 1e18);
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
 
         hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1.1e18);
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount + 1);
     }
 
-    function testWithdrawToDeposit() public {
+    function testWithdrawToDeposit(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
         underlying.approve(address(router), type(uint).max);
 
-        router.approve(underlying, address(vault), 1e18);
-        router.approve(underlying, address(toVault), 1e18);
+        router.approve(underlying, address(vault), amount);
+        router.approve(underlying, address(toVault), amount);
 
-        router.depositToVault(vault, address(this), 1e18, 1e18);
+        router.depositToVault(vault, address(this), amount, amount);
 
-        require(vault.balanceOf(address(this)) == 1e18);
+        require(vault.balanceOf(address(this)) == amount);
         require(underlying.balanceOf(address(this)) == 0);
 
         vault.approve(address(router), type(uint).max);
 
-        router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18, 1e18);
+        router.withdrawToDeposit(vault, toVault, address(this), amount, amount, amount);
 
-        require(toVault.balanceOf(address(this)) == 1e18);
+        require(toVault.balanceOf(address(this)) == amount);
         require(vault.balanceOf(address(this)) == 0);
         require(underlying.balanceOf(address(this)) == 0);
     }
 
-    function testWithdrawToBelowMinOutReverts() public {
-        underlying.approve(address(router), type(uint).max);
-
-        router.approve(underlying, address(vault), 1e18);
-        router.approve(underlying, address(toVault), 1e18);
-
-        router.depositToVault(vault, address(this), 1e18, 1e18);
-
-        require(vault.balanceOf(address(this)) == 1e18);
-        require(underlying.balanceOf(address(this)) == 0);
-
-        vault.approve(address(router), type(uint).max);
-
-        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
-        router.withdrawToDeposit(vault, toVault, address(this), 1e18, 1e18, 1.1e18);
-    }
-
-    function testRedeemTo() public {
-        underlying.approve(address(router), type(uint).max);
-
-        router.approve(underlying, address(vault), 1e18);
-        router.approve(underlying, address(toVault), 1e18);
-
-        router.depositToVault(vault, address(this), 1e18, 1e18);
-
-        require(vault.balanceOf(address(this)) == 1e18);
-        require(underlying.balanceOf(address(this)) == 0);
-
-        vault.approve(address(router), type(uint).max);
-
-        router.redeemToDeposit(vault, toVault, address(this), 1e18, 1e18);
-
-        require(toVault.balanceOf(address(this)) == 1e18);
-        require(vault.balanceOf(address(this)) == 0);
-        require(underlying.balanceOf(address(this)) == 0);
-    }
-
-    function testRedeemToBelowMinOutReverts() public {
-        underlying.approve(address(router), type(uint).max);
-
-        router.approve(underlying, address(vault), 1e18);
-        router.approve(underlying, address(toVault), 1e18);
-
-        router.depositToVault(vault, address(this), 1e18, 1e18);
-
-        require(vault.balanceOf(address(this)) == 1e18);
-        require(underlying.balanceOf(address(this)) == 0);
-
-        vault.approve(address(router), type(uint).max);
-
-        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
-        router.redeemToDeposit(vault, toVault, address(this), 1e18, 1.1e18);
-    }
-
-    function testWithdraw() public {
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
-
-        vault.approve(address(router), 1e18);
-        router.withdraw(vault, address(this), 1e18, 1e18);
-
-        require(vault.balanceOf(address(this)) == 0);
-        require(underlying.balanceOf(address(this)) == 1e18);
-    }
-
-    function testWithdrawWithPermit() public {
-        uint256 privateKey = 0xBEEF;
-        address owner = hevm.addr(privateKey);
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
-
-        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-            privateKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
-                )
-            )
-        );
-
-        vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
-
-        hevm.prank(owner);
-        router.withdraw(vault, owner, 1e18, 1e18);
-
-        require(vault.balanceOf(owner) == 0);
-        require(underlying.balanceOf(owner) == 1e18);
-    }
-
-    function testWithdrawWithPermitViaMulticall() public {
-        uint256 privateKey = 0xBEEF;
-        address owner = hevm.addr(privateKey);
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
-
-        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-            privateKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
-                )
-            )
-        );
-
-        bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626RouterBase.withdraw.selector, vault, owner, 1e18, 1e18);
-
-        hevm.prank(owner);
-        router.multicall(data);
-
-        require(vault.balanceOf(owner) == 0);
-        require(underlying.balanceOf(owner) == 1e18);
-    }
-
-    function testFailWithdrawAboveMaxOut() public {
-        underlying.approve(address(router), 1e18);
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
-
-        vault.approve(address(router), 1e18);
-        router.withdraw(IERC4626(address(vault)), address(this), 1e18, 0.9e18);
-    }
-
-    function testRedeem() public {
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
-
-        vault.approve(address(router), 1e18);
-        router.redeem(vault, address(this), 1e18, 1e18);
-
-        require(vault.balanceOf(address(this)) == 0);
-        require(underlying.balanceOf(address(this)) == 1e18);
-    }
-
-    function testRedeemMax() public {
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
-
-        vault.approve(address(router), 1e18);
-        router.redeemMax(vault, address(this), 1e18);
-
-        require(vault.balanceOf(address(this)) == 0);
-        require(underlying.balanceOf(address(this)) == 1e18);
-    }
-
-    function testRedeemWithPermit() public {
-        uint256 privateKey = 0xBEEF;
-        address owner = hevm.addr(privateKey);
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
-
-        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-            privateKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
-                )
-            )
-        );
-
-        vault.permit(owner, address(router), 1e18, block.timestamp, v, r, s);
-
-        hevm.prank(owner);
-        router.redeem(vault, owner, 1e18, 1e18);
-
-        require(vault.balanceOf(owner) == 0);
-        require(underlying.balanceOf(owner) == 1e18);
-    }
-
-    function testRedeemWithPermitViaMulticall() public {
-        uint256 privateKey = 0xBEEF;
-        address owner = hevm.addr(privateKey);
-
-        underlying.approve(address(router), 1e18);
-
-        router.approve(underlying, address(vault), 1e18);
-
-        router.depositToVault(IERC4626(address(vault)), owner, 1e18, 1e18);
-
-        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-            privateKey,
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    vault.DOMAIN_SEPARATOR(),
-                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), 1e18, 0, block.timestamp))
-                )
-            )
-        );
-
-        bytes[] memory data = new bytes[](2);
-        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, 1e18, block.timestamp, v, r, s);
-        data[1] = abi.encodeWithSelector(IERC4626RouterBase.redeem.selector, vault, owner, 1e18, 1e18);
-
-        hevm.prank(owner);
-        router.multicall(data);
-
-        require(vault.balanceOf(owner) == 0);
-        require(underlying.balanceOf(owner) == 1e18);
-    }
-
-    function testRedeemBelowMinOutReverts() public {
-        underlying.approve(address(router), 1e18);
+    function testWithdrawToBelowMinOutReverts(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount != type(uint128).max);
+        underlying.mint(address(this), amount);
         
-        router.approve(underlying, address(vault), 1e18);
+        underlying.approve(address(router), type(uint).max);
 
-        router.depositToVault(IERC4626(address(vault)), address(this), 1e18, 1e18);
+        router.approve(underlying, address(vault), amount);
+        router.approve(underlying, address(toVault), amount);
 
-        vault.approve(address(router), 1e18);
+        router.depositToVault(vault, address(this), amount, amount);
+
+        require(vault.balanceOf(address(this)) == amount);
+        require(underlying.balanceOf(address(this)) == 0);
+
+        vault.approve(address(router), type(uint).max);
+
+        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
+        router.withdrawToDeposit(vault, toVault, address(this), amount, amount, amount + 1);
+    }
+
+    function testRedeemTo(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), type(uint).max);
+
+        router.approve(underlying, address(vault), amount);
+        router.approve(underlying, address(toVault), amount);
+
+        router.depositToVault(vault, address(this), amount, amount);
+
+        require(vault.balanceOf(address(this)) == amount);
+        require(underlying.balanceOf(address(this)) == 0);
+
+        vault.approve(address(router), type(uint).max);
+
+        router.redeemToDeposit(vault, toVault, address(this), amount, amount);
+
+        require(toVault.balanceOf(address(this)) == amount);
+        require(vault.balanceOf(address(this)) == 0);
+        require(underlying.balanceOf(address(this)) == 0);
+    }
+
+    function testRedeemToBelowMinOutReverts(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount != type(uint128).max);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), type(uint).max);
+
+        router.approve(underlying, address(vault), amount);
+        router.approve(underlying, address(toVault), amount);
+
+        router.depositToVault(vault, address(this), amount, amount);
+
+        require(vault.balanceOf(address(this)) == amount);
+        require(underlying.balanceOf(address(this)) == 0);
+
+        vault.approve(address(router), type(uint).max);
+
+        hevm.expectRevert(abi.encodeWithSignature("MinSharesError()"));
+        router.redeemToDeposit(vault, toVault, address(this), amount, amount + 1);
+    }
+
+    function testWithdraw(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
+
+        vault.approve(address(router), amount);
+        router.withdraw(vault, address(this), amount, amount);
+
+        require(vault.balanceOf(address(this)) == 0);
+        require(underlying.balanceOf(address(this)) == amount);
+    }
+
+    function testWithdrawWithPermit(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+        
+        uint256 privateKey = 0xBEEF;
+        address owner = hevm.addr(privateKey);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), owner, amount, amount);
+
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    vault.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
+                )
+            )
+        );
+
+        vault.permit(owner, address(router), amount, block.timestamp, v, r, s);
+
+        hevm.prank(owner);
+        router.withdraw(vault, owner, amount, amount);
+
+        require(vault.balanceOf(owner) == 0);
+        require(underlying.balanceOf(owner) == amount);
+    }
+
+    function testWithdrawWithPermitViaMulticall(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        uint256 privateKey = 0xBEEF;
+        address owner = hevm.addr(privateKey);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), owner, amount, amount);
+
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    vault.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
+                )
+            )
+        );
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, amount, block.timestamp, v, r, s);
+        data[1] = abi.encodeWithSelector(IERC4626RouterBase.withdraw.selector, vault, owner, amount, amount);
+
+        hevm.prank(owner);
+        router.multicall(data);
+
+        require(vault.balanceOf(owner) == 0);
+        require(underlying.balanceOf(owner) == amount);
+    }
+
+    function testFailWithdrawAboveMaxOut(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), amount);
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
+
+        vault.approve(address(router), amount);
+        router.withdraw(IERC4626(address(vault)), address(this), amount, amount - 1);
+    }
+
+    function testRedeem(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
+
+        vault.approve(address(router), amount);
+        router.redeem(vault, address(this), amount, amount);
+
+        require(vault.balanceOf(address(this)) == 0);
+        require(underlying.balanceOf(address(this)) == amount);
+    }
+
+    function testRedeemMax(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
+
+        vault.approve(address(router), amount);
+        router.redeemMax(vault, address(this), amount);
+
+        require(vault.balanceOf(address(this)) == 0);
+        require(underlying.balanceOf(address(this)) == amount);
+    }
+
+    function testRedeemWithPermit(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        uint256 privateKey = 0xBEEF;
+        address owner = hevm.addr(privateKey);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), owner, amount, amount);
+
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    vault.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
+                )
+            )
+        );
+
+        vault.permit(owner, address(router), amount, block.timestamp, v, r, s);
+
+        hevm.prank(owner);
+        router.redeem(vault, owner, amount, amount);
+
+        require(vault.balanceOf(owner) == 0);
+        require(underlying.balanceOf(owner) == amount);
+    }
+
+    function testRedeemWithPermitViaMulticall(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0);
+        underlying.mint(address(this), amount);
+
+        uint256 privateKey = 0xBEEF;
+        address owner = hevm.addr(privateKey);
+
+        underlying.approve(address(router), amount);
+
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), owner, amount, amount);
+
+        (uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+            privateKey,
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    vault.DOMAIN_SEPARATOR(),
+                    keccak256(abi.encode(PERMIT_TYPEHASH, owner, address(router), amount, 0, block.timestamp))
+                )
+            )
+        );
+
+        bytes[] memory data = new bytes[](2);
+        data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, vault, amount, block.timestamp, v, r, s);
+        data[1] = abi.encodeWithSelector(IERC4626RouterBase.redeem.selector, vault, owner, amount, amount);
+
+        hevm.prank(owner);
+        router.multicall(data);
+
+        require(vault.balanceOf(owner) == 0);
+        require(underlying.balanceOf(owner) == amount);
+    }
+
+    function testRedeemBelowMinOutReverts(uint128 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount != type(uint128).max);
+        underlying.mint(address(this), amount);
+
+        underlying.approve(address(router), amount);
+        
+        router.approve(underlying, address(vault), amount);
+
+        router.depositToVault(IERC4626(address(vault)), address(this), amount, amount);
+
+        vault.approve(address(router), amount);
 
         hevm.expectRevert(abi.encodeWithSignature("MinAmountError()"));
-        router.redeem(IERC4626(address(vault)), address(this), 1e18, 1.1e18);
+        router.redeem(IERC4626(address(vault)), address(this), amount, amount + 1);
     }
 
-    function testDepositETHToWETHVault() public {
-        router.approve(weth, address(wethVault), 1 ether);
+    function testDepositETHToWETHVault(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount < 100 ether);
+        underlying.mint(address(this), amount);
+
+        router.approve(weth, address(wethVault), amount);
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWETH9.selector);
-        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), amount, amount);
 
-        router.multicall{value: 1 ether}(data);
+        router.multicall{value: amount}(data);
 
-        require(wethVault.balanceOf(address(this)) == 1e18);
+        require(wethVault.balanceOf(address(this)) == amount);
         require(weth.balanceOf(address(router)) == 0);
     }
 
-    function testWithdrawETHFromWETHVault() public {
+    function testWithdrawETHFromWETHVault(uint256 amount) public {
+        Assume(address(hevm)).assume(amount != 0 && amount < 100 ether);
+        underlying.mint(address(this), amount);
 
         uint balanceBefore = address(this).balance;
 
-        router.approve(weth, address(wethVault), 1 ether);
+        router.approve(weth, address(wethVault), amount);
 
         bytes[] memory data = new bytes[](2);
         data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWETH9.selector);
-        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), 1e18, 1e18);
+        data[1] = abi.encodeWithSelector(ERC4626RouterBase.deposit.selector, wethVault, address(this), amount, amount);
 
-        router.multicall{value: 1 ether}(data);
+        router.multicall{value: amount}(data);
 
-        wethVault.approve(address(router), 1 ether);
+        wethVault.approve(address(router), amount);
 
         bytes[] memory withdrawData = new bytes[](2);
-        withdrawData[0] = abi.encodeWithSelector(ERC4626RouterBase.withdraw.selector, wethVault, address(router), 1e18, 1e18);
-        withdrawData[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWETH9.selector, 1 ether, address(this));
+        withdrawData[0] = abi.encodeWithSelector(ERC4626RouterBase.withdraw.selector, wethVault, address(router), amount, amount);
+        withdrawData[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWETH9.selector, amount, address(this));
 
         router.multicall(withdrawData);
 
