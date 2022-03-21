@@ -5,7 +5,6 @@ import "./IERC4626.sol";
 
 /** 
  @title ERC4626Router Interface
- @author joeysantoro
  @notice Extends the ERC4626RouterBase with specific flows to save gas
  */
 interface IERC4626Router {

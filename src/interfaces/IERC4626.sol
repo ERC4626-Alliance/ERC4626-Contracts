@@ -4,7 +4,6 @@ pragma solidity 0.8.10;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 /// @title ERC4626 interface
-/// @author Fei Protocol
 /// See: https://eips.ethereum.org/EIPS/eip-4626
 abstract contract IERC4626 is ERC20 {
 
