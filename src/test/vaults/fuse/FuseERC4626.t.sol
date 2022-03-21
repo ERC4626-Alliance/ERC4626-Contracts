@@ -1,9 +1,9 @@
 pragma solidity ^0.8.10;
 
-import {Hevm} from "./Hevm.sol";
-import {MockERC20} from "./mock/MockERC20.sol";
-import {MockCToken} from "./mock/MockCToken.sol";
-import {FuseERC4626} from "../vaults/fuse/FuseERC4626.sol";
+import {Hevm} from "../../Hevm.sol";
+import {MockERC20} from "../../mocks/MockERC20.sol";
+import {MockCToken} from "../../mocks/MockCToken.sol";
+import {FuseERC4626} from "../../../vaults/fuse/FuseERC4626.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract TestFuseERC4626 {
