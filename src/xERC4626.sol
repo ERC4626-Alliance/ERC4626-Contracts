@@ -19,6 +19,9 @@ abstract contract xERC4626 is ERC4626 {
     /// @dev thrown when syncing before cycle ends.
     error SyncError();
 
+    /// @dev emit every time a new rewards cycle starts
+    event NewRewardsCycle(uint32 indexed cycleEnd, uint256 rewardAmount);
+
     /// @notice the length of a rewards cycle
     uint32 public immutable rewardsCycleLength;
 
@@ -29,14 +32,14 @@ abstract contract xERC4626 is ERC4626 {
     uint32 public rewardsCycleEnd;
 
     /// @notice the amount of rewards distributed in a given cycle
-    uint160 public lastRewardAmount;
+    uint192 public lastRewardAmount;
 
     uint256 internal storedTotalAssets;
 
     constructor(uint32 _rewardsCycleLength) {
         rewardsCycleLength = _rewardsCycleLength;
         // seed initial rewardsCycleEnd
-        rewardsCycleEnd = uint32(block.timestamp) / rewardsCycleLength * rewardsCycleLength;
+        rewardsCycleEnd = block.timestamp.safeCastTo32() / rewardsCycleLength * rewardsCycleLength;
     }
 
     /// @notice Compute the amount of tokens available to share holders.
@@ -44,7 +47,7 @@ abstract contract xERC4626 is ERC4626 {
     function totalAssets() public view override returns (uint256) {
         // cache global vars
         uint256 storedTotalAssets_ = storedTotalAssets;
-        uint160 lastRewardAmount_ = lastRewardAmount;
+        uint192 lastRewardAmount_ = lastRewardAmount;
         uint32 rewardsCycleEnd_ = rewardsCycleEnd;
         uint32 lastSync_ = lastSync;
         
@@ -76,7 +79,7 @@ abstract contract xERC4626 is ERC4626 {
     /// @notice Distributes rewards to xERC4626 holders
     /// All surplus `asset` balance of the contract becomes queued for the next cycle
     function syncRewards() external virtual {
-        uint160 lastRewardAmount_ = lastRewardAmount;
+        uint192 lastRewardAmount_ = lastRewardAmount;
         uint32 timestamp = block.timestamp.safeCastTo32();
 
         if (timestamp < rewardsCycleEnd) revert SyncError();
@@ -86,12 +89,13 @@ abstract contract xERC4626 is ERC4626 {
 
         storedTotalAssets = storedTotalAssets_ + lastRewardAmount_; // SSTORE
 
-        // safeCast check.
-        require(nextRewards <= type(uint160).max);
-
+        uint32 end = (timestamp + rewardsCycleLength) / rewardsCycleLength * rewardsCycleLength;
+        
         // Combined single SSTORE
+        lastRewardAmount = nextRewards.safeCastTo192();
         lastSync = timestamp;
-        rewardsCycleEnd = (timestamp + rewardsCycleLength) / rewardsCycleLength * rewardsCycleLength;
-        lastRewardAmount = uint160(nextRewards);
+        rewardsCycleEnd = end;
+
+        emit NewRewardsCycle(end, nextRewards);
     }
 }
