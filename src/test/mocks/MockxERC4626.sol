@@ -20,7 +20,7 @@ contract MockxERC4626 is xERC4626 {
     ) ERC4626(_underlying, _name, _symbol) xERC4626(_rewardsCycleLength) {}
 
     function warpInCycle(uint256 warp) public {
-        hevm.warp(warp % rewardsCycleLength);
+        hevm.warp(block.timestamp + (warp % rewardsCycleLength));
     }
 
     function reward(uint256 amount) public {
