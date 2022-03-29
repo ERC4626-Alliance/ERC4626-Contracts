@@ -6,32 +6,30 @@ pragma solidity ^0.8.0;
 import "solmate/mixins/ERC4626.sol";
 import "solmate/utils/SafeCastLib.sol";
 
+import "./interfaces/IxERC4626.sol";
+
 /** 
  @title  An xERC4626 Single Staking Contract
  @notice This contract allows users to autocompound rewards denominated in an underlying reward token. 
-         It is fully compatible with ERC4626 allowing for DeFi composability.
+         It is fully compatible with [ERC4626](https://eips.ethereum.org/EIPS/eip-4626) allowing for DeFi composability.
          It maintains balances using internal accounting to prevent instantaneous changes in the exchange rate.
          NOTE: an exception is at contract creation, when a reward cycle begins before the first deposit. After the first deposit, exchange rate updates smoothly.
+
+         Operates on "cycles" which distribute the rewards surplus over the internal balance to users linearly over the remainder of the cycle window.
 */
-abstract contract xERC4626 is ERC4626 {
+abstract contract xERC4626 is IxERC4626, ERC4626 {
     using SafeCastLib for *;
 
-    /// @dev thrown when syncing before cycle ends.
-    error SyncError();
-
-    /// @dev emit every time a new rewards cycle starts
-    event NewRewardsCycle(uint32 indexed cycleEnd, uint256 rewardAmount);
-
-    /// @notice the length of a rewards cycle
+    /// @notice the maximum length of a rewards cycle
     uint32 public immutable rewardsCycleLength;
 
-    /// @notice the delayed start of the current cycle
+    /// @notice the effective start of the current cycle
     uint32 public lastSync;
 
-    /// @notice the end of the current cycle
+    /// @notice the end of the current cycle. Will always be evenly divisible by `rewardsCycleLength`.
     uint32 public rewardsCycleEnd;
 
-    /// @notice the amount of rewards distributed in a given cycle
+    /// @notice the amount of rewards distributed in a the most recent cycle.
     uint192 public lastRewardAmount;
 
     uint256 internal storedTotalAssets;
@@ -76,8 +74,8 @@ abstract contract xERC4626 is ERC4626 {
         super.afterDeposit(amount, shares);
     }
 
-    /// @notice Distributes rewards to xERC4626 holders
-    /// All surplus `asset` balance of the contract becomes queued for the next cycle
+    /// @notice Distributes rewards to xERC4626 holders.
+    /// All surplus `asset` balance of the contract over the internal balance becomes queued for the next cycle.
     function syncRewards() external virtual {
         uint192 lastRewardAmount_ = lastRewardAmount;
         uint32 timestamp = block.timestamp.safeCastTo32();
