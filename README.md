@@ -31,8 +31,9 @@ Vault deposit (requires ERC-20 approval of vault underlying asset before calling
 - PeripheryPayments.approve(asset, vault, amount) approves the vault to spend asset of the router
 - ERC4626Router.depositToVault
 
-Max vault redeem (requires the router to have ERC-20 approval of the vault shares before calling OR use a self-permit):
-- ERC4626Router.redeemMax
+WETH vault redeem (requires the router to have ERC-20 approval of the vault shares before calling OR use a self-permit):
+- ERC4626Router.redeem *to* the router
+- PeripheryPayments.unwrapWETH9 *to* the user destination
 
 2 to 1 vault consolidation (requires ERC-20 approval of both source vault underlying assets OR self-permit):
 - ERC4626RouterBase.withdraw (or redeem) on vault A *to* the router
