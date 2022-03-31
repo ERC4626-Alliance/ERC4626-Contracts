@@ -1,14 +1,14 @@
 {
-  "name": "dapptools-template",
+  "name": "@fei-protocol/erc4626",
   "license": "AGPL-3.0-only",
-  "version": "1.0.0",
-  "description": "Streamlined template for getting started with DappTools and Solmate.",
+  "version": "0.0.0",
+  "description": "ERC4626 infrastructure such as the ERC4626Router and xERC4626",
   "files": [
     "src/**/*.sol"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/transmissions11/dapptools-template.git"
+    "url": "git+https://github.com/fei-protocol/ERC4626.git"
   },
   "devDependencies": {
     "prettier": "^2.3.1",
@@ -16,5 +16,15 @@
   },
   "scripts": {
     "lint": "prettier --write src/**/*.sol"
-  }
+  },
+  "homepage": "https://github.com/fei-protocol/ERC4626/blob/main/README.md",
+  "keywords": [
+    "erc4626",
+    "blockchain",
+    "ethereum",
+    "eip-4626",
+    "vault",
+    "router",
+    "xerc4626"
+  ]
 }
