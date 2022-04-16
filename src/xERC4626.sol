@@ -37,7 +37,7 @@ abstract contract xERC4626 is IxERC4626, ERC4626 {
     constructor(uint32 _rewardsCycleLength) {
         rewardsCycleLength = _rewardsCycleLength;
         // seed initial rewardsCycleEnd
-        rewardsCycleEnd = block.timestamp.safeCastTo32() / rewardsCycleLength * rewardsCycleLength;
+        rewardsCycleEnd = (block.timestamp.safeCastTo32() / rewardsCycleLength) * rewardsCycleLength;
     }
 
     /// @notice Compute the amount of tokens available to share holders.
@@ -48,17 +48,16 @@ abstract contract xERC4626 is IxERC4626, ERC4626 {
         uint192 lastRewardAmount_ = lastRewardAmount;
         uint32 rewardsCycleEnd_ = rewardsCycleEnd;
         uint32 lastSync_ = lastSync;
-        
+
         if (block.timestamp >= rewardsCycleEnd_) {
             // no rewards or rewards fully unlocked
             // entire reward amount is available
             return storedTotalAssets_ + lastRewardAmount_;
-        } 
-
+        }
 
         // rewards not fully unlocked
         // add unlocked rewards to stored total
-        uint256 unlockedRewards = lastRewardAmount_ * (block.timestamp - lastSync_) / (rewardsCycleEnd_ - lastSync_);
+        uint256 unlockedRewards = (lastRewardAmount_ * (block.timestamp - lastSync_)) / (rewardsCycleEnd_ - lastSync_);
         return storedTotalAssets_ + unlockedRewards;
     }
 
@@ -87,8 +86,8 @@ abstract contract xERC4626 is IxERC4626, ERC4626 {
 
         storedTotalAssets = storedTotalAssets_ + lastRewardAmount_; // SSTORE
 
-        uint32 end = (timestamp + rewardsCycleLength) / rewardsCycleLength * rewardsCycleLength;
-        
+        uint32 end = ((timestamp + rewardsCycleLength) / rewardsCycleLength) * rewardsCycleLength;
+
         // Combined single SSTORE
         lastRewardAmount = nextRewards.safeCastTo192();
         lastSync = timestamp;

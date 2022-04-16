@@ -6,5 +6,10 @@
   "files.associations": {
     ".dapprc": "shellscript",
     ".gas-snapshot": "julia"
+  },
+  "editor.formatOnSave": true,
+  "solidity.formatter": "prettier",
+  "[solidity]": {
+      "editor.defaultFormatter": "JuanBlanco.solidity"
   }
 }

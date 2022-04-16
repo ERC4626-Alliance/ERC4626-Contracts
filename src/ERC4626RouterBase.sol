@@ -14,7 +14,7 @@ abstract contract ERC4626RouterBase is IERC4626RouterBase, SelfPermit, Multicall
 
     /// @inheritdoc IERC4626RouterBase
     function mint(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 shares,
         uint256 maxAmountIn
@@ -26,7 +26,7 @@ abstract contract ERC4626RouterBase is IERC4626RouterBase, SelfPermit, Multicall
 
     /// @inheritdoc IERC4626RouterBase
     function deposit(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 amount,
         uint256 minSharesOut

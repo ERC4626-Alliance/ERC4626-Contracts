@@ -8,9 +8,8 @@ import "./IERC4626.sol";
  @notice Extends the ERC4626RouterBase with specific flows to save gas
  */
 interface IERC4626Router {
-
     /************************** Deposit **************************/
-    
+
     /** 
      @notice deposit `amount` to an ERC4626 vault.
      @param vault The ERC4626 vault to deposit assets to.
@@ -36,7 +35,7 @@ interface IERC4626Router {
      @dev throws MinSharesError   
     */
     function depositMax(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 minSharesOut
     ) external payable returns (uint256 sharesOut);
@@ -83,7 +82,6 @@ interface IERC4626Router {
         uint256 minSharesOut
     ) external payable returns (uint256 sharesOut);
 
-
     /** 
      @notice redeem max shares to an ERC4626 vault.
      @param vault The ERC4626 vault to redeem shares from.
@@ -93,7 +91,7 @@ interface IERC4626Router {
      @dev throws MinAmountError   
     */
     function redeemMax(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 minAmountOut
     ) external payable returns (uint256 amountOut);
