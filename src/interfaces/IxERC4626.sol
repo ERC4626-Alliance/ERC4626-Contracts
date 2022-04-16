@@ -19,14 +19,14 @@ interface IxERC4626 {
     /*////////////////////////////////////////////////////////
                         Custom Errors
     ////////////////////////////////////////////////////////*/
-    
+
     /// @dev thrown when syncing before cycle ends.
     error SyncError();
 
     /*////////////////////////////////////////////////////////
                             Events
     ////////////////////////////////////////////////////////*/
-    
+
     /// @dev emit every time a new rewards cycle starts
     event NewRewardsCycle(uint32 indexed cycleEnd, uint256 rewardAmount);
 
@@ -54,5 +54,4 @@ interface IxERC4626 {
     /// @notice Distributes rewards to xERC4626 holders.
     /// All surplus `asset` balance of the contract over the internal balance becomes queued for the next cycle.
     function syncRewards() external;
-
 }

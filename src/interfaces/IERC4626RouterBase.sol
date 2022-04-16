@@ -32,7 +32,7 @@ interface IERC4626RouterBase {
     error MaxSharesError();
 
     /************************** Mint **************************/
-    
+
     /** 
      @notice mint `shares` from an ERC4626 vault.
      @param vault The ERC4626 vault to mint shares from.
@@ -50,7 +50,7 @@ interface IERC4626RouterBase {
     ) external payable returns (uint256 amountIn);
 
     /************************** Deposit **************************/
-    
+
     /** 
      @notice deposit `amount` to an ERC4626 vault.
      @param vault The ERC4626 vault to deposit assets to.

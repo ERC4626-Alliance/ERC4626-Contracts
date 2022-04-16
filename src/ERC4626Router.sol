@@ -53,7 +53,7 @@ contract ERC4626Router is IERC4626Router, ERC4626RouterBase, ENSReverseRecord {
 
     /// @inheritdoc IERC4626Router
     function depositMax(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 minSharesOut
     ) public payable override returns (uint256 sharesOut) {
@@ -67,7 +67,7 @@ contract ERC4626Router is IERC4626Router, ERC4626RouterBase, ENSReverseRecord {
 
     /// @inheritdoc IERC4626Router
     function redeemMax(
-        IERC4626 vault, 
+        IERC4626 vault,
         address to,
         uint256 minAmountOut
     ) public payable override returns (uint256 amountOut) {
