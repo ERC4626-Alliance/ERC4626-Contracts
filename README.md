@@ -72,7 +72,7 @@ Examples:
 ## xERC4626
 An "xToken" popularized by SushiSwap with xSUSHI is a single-sided autocompounding token rewards module.
 
-xTokens were improved apon by Zephram Lou with [xERC20](https://github.com/ZeframLou/playpen/blob/main/src/xERC20.sol) to include manipulation resistant reward distributions.
+xTokens were improved upon by Zephram Lou with [xERC20](https://github.com/ZeframLou/playpen/blob/main/src/xERC20.sol) to include manipulation resistant reward distributions.
 
 Because xTokens are a perfect use case of ERC-4626, a base utility called xERC4626 is included in this repo. 
 
