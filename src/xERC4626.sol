@@ -75,7 +75,7 @@ abstract contract xERC4626 is IxERC4626, ERC4626 {
 
     /// @notice Distributes rewards to xERC4626 holders.
     /// All surplus `asset` balance of the contract over the internal balance becomes queued for the next cycle.
-    function syncRewards() external virtual {
+    function syncRewards() public virtual {
         uint192 lastRewardAmount_ = lastRewardAmount;
         uint32 timestamp = block.timestamp.safeCastTo32();
 
