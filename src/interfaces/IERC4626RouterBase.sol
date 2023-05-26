@@ -74,7 +74,7 @@ interface IERC4626RouterBase {
      @param vault The ERC4626 vault to withdraw assets from.
      @param to The destination of assets.
      @param amount The amount of assets to withdraw from vault.
-     @param minSharesOut The min amount of shares received by `to`.
+     @param maxSharesOut The max amount of shares to pay for assets.
      @return sharesOut the amount of shares received by `to`.
      @dev throws MaxSharesError   
     */
@@ -82,7 +82,7 @@ interface IERC4626RouterBase {
         IERC4626 vault,
         address to,
         uint256 amount,
-        uint256 minSharesOut
+        uint256 maxSharesOut
     ) external payable returns (uint256 sharesOut);
 
     /************************** Redeem **************************/
